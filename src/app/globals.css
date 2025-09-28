@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .prose-custom {
+    @apply prose prose-gray max-w-none;
+  }
+
+  .prose-custom h1 {
+    @apply text-3xl font-bold text-gray-900;
+  }
+
+  .prose-custom h2 {
+    @apply text-2xl font-semibold text-gray-900;
+  }
+
+  .prose-custom h3 {
+    @apply text-xl font-semibold text-gray-900;
+  }
+
+  .prose-custom p {
+    @apply text-gray-700 leading-relaxed;
+  }
+
+  .prose-custom ul {
+    @apply list-disc list-inside;
+  }
+
+  .prose-custom ol {
+    @apply list-decimal list-inside;
+  }
+
+  .prose-custom blockquote {
+    @apply border-l-4 border-gray-300 pl-4 italic text-gray-600;
+  }
+
+  .gradient-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .writing-canvas {
+    @apply min-h-[600px] p-6 border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent;
+  }
+
+  .ai-suggestion {
+    @apply bg-blue-50 border border-blue-200 rounded-lg p-4 relative;
+  }
+
+  .ai-suggestion::before {
+    content: '';
+    @apply absolute -left-2 top-4 w-4 h-4 bg-blue-500 rounded-full;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Editor styles */
+.ProseMirror {
+  outline: none;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.ProseMirror p {
+  margin: 1em 0;
+}
+
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+
+.ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 1em 0;
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  padding-left: 2em;
+  margin: 1em 0;
+}
+
+.ProseMirror blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1em;
+  margin: 1em 0;
+  font-style: italic;
+}
+
+.ProseMirror.placeholder-show p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}

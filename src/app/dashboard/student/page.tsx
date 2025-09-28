@@ -1,0 +1,269 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { getCurrentUser } from '@/lib/auth';
+import { User } from '@/types';
+import {
+  BookOpenIcon,
+  PencilSquareIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
+
+export default function StudentDashboard() {
+  const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState({
+    totalAssignments: 0,
+    pendingAssignments: 3,
+    completedAssignments: 7,
+    draftSubmissions: 2,
+    aiTokensUsed: 0,
+    aiTokensLimit: 1000
+  });
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          setStats(prev => ({
+            ...prev,
+            aiTokensUsed: currentUser.aiTokensUsed,
+            aiTokensLimit: currentUser.aiTokensLimit
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  const recentAssignments = [
+    {
+      id: 1,
+      title: "Research Paper: Climate Change",
+      course: "Environmental Science",
+      dueDate: "2024-01-15",
+      status: "pending",
+      progress: 60
+    },
+    {
+      id: 2,
+      title: "Essay: Shakespeare's Hamlet",
+      course: "English Literature",
+      dueDate: "2024-01-12",
+      status: "draft",
+      progress: 30
+    },
+    {
+      id: 3,
+      title: "Lab Report: Chemical Reactions",
+      course: "Chemistry",
+      dueDate: "2024-01-10",
+      status: "submitted",
+      progress: 100
+    }
+  ];
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'submitted':
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+      case 'pending':
+        return <ClockIcon className="h-5 w-5 text-yellow-500" />;
+      case 'draft':
+        return <PencilSquareIcon className="h-5 w-5 text-blue-500" />;
+      default:
+        return <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'submitted':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'draft':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-red-100 text-red-800';
+    }
+  };
+
+  const aiUsagePercentage = user ? (user.aiTokensUsed / user.aiTokensLimit) * 100 : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome Header */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back, {user?.name || 'Student'}!
+        </h1>
+        <p className="text-gray-600 mt-2">
+          Here's an overview of your academic progress and upcoming assignments.
+        </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <BookOpenIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Assignments</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalAssignments}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <ClockIcon className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Pending</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.completedAssignments}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <PencilSquareIcon className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Drafts</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.draftSubmissions}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Usage Card */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">AI Assistant Usage</h3>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-600">Tokens Used</span>
+          <span className="text-sm font-medium text-gray-900">
+            {user?.aiTokensUsed || 0} / {user?.aiTokensLimit || 1000}
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${Math.min(aiUsagePercentage, 100)}%` }}
+          ></div>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          {aiUsagePercentage >= 90 ?
+            'You\'re approaching your monthly limit. Consider upgrading your plan.' :
+            'You have plenty of AI assistance available this month.'
+          }
+        </p>
+      </div>
+
+      {/* Recent Assignments */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Recent Assignments</h3>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {recentAssignments.map((assignment) => (
+            <div key={assignment.id} className="px-6 py-4 hover:bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {getStatusIcon(assignment.status)}
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">
+                      {assignment.title}
+                    </p>
+                    <p className="text-sm text-gray-500">{assignment.course}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="text-right">
+                    <p className="text-sm text-gray-900">
+                      Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                    </p>
+                    <div className="flex items-center mt-1">
+                      <div className="w-20 bg-gray-200 rounded-full h-1.5 mr-2">
+                        <div
+                          className="bg-blue-600 h-1.5 rounded-full"
+                          style={{ width: `${assignment.progress}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {assignment.progress}%
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
+                    {assignment.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="px-6 py-3 bg-gray-50 text-center">
+          <button className="text-sm text-blue-600 hover:text-blue-500 font-medium">
+            View All Assignments
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
+            <PencilSquareIcon className="h-8 w-8 text-gray-400" />
+            <div className="ml-3 text-left">
+              <p className="font-medium text-gray-900">Start New Assignment</p>
+              <p className="text-sm text-gray-500">Begin working on a new task</p>
+            </div>
+          </button>
+
+          <button className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors">
+            <BookOpenIcon className="h-8 w-8 text-gray-400" />
+            <div className="ml-3 text-left">
+              <p className="font-medium text-gray-900">Join New Class</p>
+              <p className="text-sm text-gray-500">Enter a class code to join</p>
+            </div>
+          </button>
+
+          <button className="flex items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors">
+            <CheckCircleIcon className="h-8 w-8 text-gray-400" />
+            <div className="ml-3 text-left">
+              <p className="font-medium text-gray-900">Review Feedback</p>
+              <p className="text-sm text-gray-500">Check graded assignments</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
