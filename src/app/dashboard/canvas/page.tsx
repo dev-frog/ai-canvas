@@ -422,7 +422,7 @@ export default function CanvasPage() {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-30 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your canvas...</p>
         </div>
       </div>
@@ -430,9 +430,9 @@ export default function CanvasPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <DocumentTextIcon className="h-8 w-8 text-blue-600" />
@@ -557,7 +557,7 @@ export default function CanvasPage() {
 
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Main Editor */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Assignment Info Panel */}
           {assignment && (
             <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 flex-shrink-0">
