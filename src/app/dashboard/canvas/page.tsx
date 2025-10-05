@@ -50,6 +50,8 @@ export default function CanvasPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [content, setContent] = useState('');
+  const [title, setTitle] = useState('Untitled');
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [wordCount, setWordCount] = useState(0);
   const [aiAssistance, setAiAssistance] = useState<AIAssistance[]>([]);
   const [showAIPanel, setShowAIPanel] = useState(true);
@@ -66,6 +68,7 @@ export default function CanvasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const assignmentId = searchParams.get('assignment');
+  const canvasId = searchParams.get('id');
 
   useEffect(() => {
     const loadData = async () => {
@@ -81,6 +84,20 @@ export default function CanvasPage() {
         }
         setUser(currentUser);
         setAiTokensUsed(currentUser.aiTokensUsed || 0);
+
+        // Load existing canvas document if ID provided
+        if (canvasId) {
+          const response = await fetch(`/api/canvas?id=${canvasId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.submission) {
+              setSubmissionId(data.submission._id);
+              setTitle(data.submission.title || 'Untitled');
+              setContent(data.submission.content || '');
+              setWordCount(data.submission.wordCount || 0);
+            }
+          }
+        }
 
         // Load assignment if ID provided
         if (assignmentId) {
@@ -110,18 +127,20 @@ export default function CanvasPage() {
     };
 
     loadData();
-  }, [router, assignmentId]);
+  }, [router, assignmentId, canvasId]);
 
   // Auto-save functionality
   useEffect(() => {
-    if (!content || !user) return;
+    if (!user) return;
+    // Don't auto-save if there's no content and title is still default
+    if (!content && title === 'Untitled') return;
 
     const autoSaveTimer = setTimeout(async () => {
       await saveContent();
-    }, 3000); // Auto-save after 3 seconds of inactivity
+    }, 5000); // Auto-save after 5 seconds of inactivity
 
     return () => clearTimeout(autoSaveTimer);
-  }, [content, user]);
+  }, [content, title, user, wordCount]);
 
   // Update word count
   useEffect(() => {
@@ -160,9 +179,61 @@ export default function CanvasPage() {
 
     setSaving(true);
     try {
-      // TODO: Save to backend API
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      setLastSaved(new Date());
+      if (submissionId) {
+        // Update existing submission
+        console.log('Updating submission:', submissionId);
+        const response = await fetch('/api/canvas', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: submissionId,
+            title,
+            content,
+            wordCount,
+            aiTokensUsed,
+            status: 'draft'
+          }),
+        });
+
+        const data = await response.json();
+        console.log('Update response:', data);
+
+        if (!response.ok) {
+          console.error('Failed to save:', data);
+          throw new Error(data.error || 'Failed to save');
+        }
+
+        if (data.success) {
+          setLastSaved(new Date());
+        }
+      } else {
+        // Create new submission
+        console.log('Creating new submission');
+        const response = await fetch('/api/canvas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content,
+            assignmentId,
+          }),
+        });
+
+        const data = await response.json();
+        console.log('Create response:', data);
+
+        if (!response.ok) {
+          console.error('Failed to create:', data);
+          throw new Error(data.error || 'Failed to create');
+        }
+
+        if (data.success && data.submission) {
+          setSubmissionId(data.submission._id);
+          setLastSaved(new Date());
+          // Update URL with submission ID
+          router.replace(`/dashboard/canvas?id=${data.submission._id}${assignmentId ? `&assignment=${assignmentId}` : ''}`);
+        }
+      }
     } catch (error) {
       console.error('Failed to save:', error);
     } finally {
@@ -331,12 +402,19 @@ export default function CanvasPage() {
             {/* New Assignment Button */}
             <button
               onClick={() => {
-                // Clear current content and assignment
+                // Clear all state
                 setContent('');
+                setTitle('Untitled');
+                setSubmissionId(null);
                 setAssignment(null);
                 setAiAssistance([]);
                 setAutocompleteSuggestions([]);
-                router.push('/dashboard/canvas');
+                setWordCount(0);
+                setLastSaved(null);
+                setSaving(false);
+
+                // Navigate to clean canvas URL
+                router.replace('/dashboard/canvas');
               }}
               className="ml-4 flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               title="Start a new assignment"
@@ -432,6 +510,7 @@ export default function CanvasPage() {
             {showPreview ? (
               <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-y-auto">
                 <div className="prose max-w-none" ref={previewRef}>
+                  <h1 className="text-4xl font-bold mb-6">{title}</h1>
                   {content ? (
                     <div dangerouslySetInnerHTML={{ __html: content }} />
                   ) : (
@@ -440,12 +519,31 @@ export default function CanvasPage() {
                 </div>
               </div>
             ) : (
-              <div className="relative flex-1 flex flex-col min-h-0">
-                <RichTextEditor
-                  content={content}
-                  onChange={(newContent) => setContent(newContent)}
-                  placeholder="Start writing your assignment here..."
-                />
+              <div className="relative flex-1 flex flex-col min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
+                {/* Title Input */}
+                <div className="px-6 pt-6 pb-2 border-b border-gray-100">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onBlur={(e) => {
+                      if (!e.target.value.trim()) {
+                        setTitle('Untitled');
+                      }
+                    }}
+                    placeholder="Untitled"
+                    className="w-full text-4xl font-bold text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent border-none p-0"
+                  />
+                </div>
+
+                {/* Rich Text Editor */}
+                <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                  <RichTextEditor
+                    content={content}
+                    onChange={(newContent) => setContent(newContent)}
+                    placeholder="Start writing your assignment here..."
+                  />
+                </div>
 
                 {/* Autocomplete Suggestions */}
                 {autocompleteEnabled && autocompleteSuggestions.length > 0 && (

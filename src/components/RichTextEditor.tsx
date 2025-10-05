@@ -366,7 +366,7 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
   }, [editor?.state.doc]);
 
   return (
-    <div className="border border-gray-200 rounded-lg bg-white flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden">
       <MenuBar editor={editor} />
       <div className="flex-1 overflow-y-auto">
         <EditorContent editor={editor} className="h-full math-content" />

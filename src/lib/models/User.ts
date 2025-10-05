@@ -7,13 +7,10 @@ const userSchema = new Schema<UserDocument>({
   firebaseUid: {
     type: String,
     required: true,
-    unique: true,
-    index: true,
   },
   email: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
     trim: true,
   },
@@ -79,8 +76,8 @@ const userSchema = new Schema<UserDocument>({
 });
 
 // Indexes for performance
-userSchema.index({ email: 1 });
-userSchema.index({ firebaseUid: 1 });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ firebaseUid: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ subscriptionStatus: 1 });
 

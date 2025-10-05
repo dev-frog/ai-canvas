@@ -29,7 +29,6 @@ const classSchema = new Schema<ClassDocument>({
   classCode: {
     type: String,
     required: true,
-    unique: true,
     uppercase: true,
   },
   isActive: {
@@ -58,7 +57,7 @@ const classSchema = new Schema<ClassDocument>({
 
 // Indexes
 classSchema.index({ teacherId: 1 });
-classSchema.index({ classCode: 1 });
+classSchema.index({ classCode: 1 }, { unique: true });
 classSchema.index({ isActive: 1 });
 classSchema.index({ students: 1 });
 

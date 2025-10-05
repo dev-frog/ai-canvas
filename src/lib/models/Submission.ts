@@ -23,12 +23,15 @@ const submissionSchema = new Schema<SubmissionDocument>({
   assignmentId: {
     type: Schema.Types.ObjectId,
     ref: 'Assignment',
-    required: true,
+    required: false,
   },
   studentId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
+  },
+  title: {
+    type: String,
+    default: 'Untitled',
   },
   content: {
     type: String,
@@ -107,7 +110,6 @@ submissionSchema.index({ assignmentId: 1 });
 submissionSchema.index({ studentId: 1 });
 submissionSchema.index({ status: 1 });
 submissionSchema.index({ submittedAt: 1 });
-submissionSchema.index({ assignmentId: 1, studentId: 1 }, { unique: true });
 
 // Virtual for word count
 submissionSchema.virtual('currentWordCount').get(function() {

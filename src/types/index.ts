@@ -74,8 +74,9 @@ export interface RubricLevel {
 
 export interface Submission {
   _id: string;
-  assignmentId: string;
+  assignmentId?: string;
   studentId: string;
+  title: string;
   content: string;
   status: 'draft' | 'submitted' | 'graded';
   submittedAt?: Date;
