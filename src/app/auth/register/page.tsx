@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { BookOpen } from 'lucide-react';
 
@@ -14,7 +15,9 @@ export default function RegisterPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <RegisterForm />
+        <Suspense fallback={<div className="text-center">Loading...</div>}>
+          <RegisterForm />
+        </Suspense>
       </div>
     </div>
   );

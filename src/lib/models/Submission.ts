@@ -118,15 +118,19 @@ submissionSchema.virtual('currentWordCount').get(function() {
 
 // Virtual for is late
 submissionSchema.virtual('isLate').get(function() {
-  if (!this.submittedAt) return false;
-  return this.populated('assignmentId') &&
-         this.submittedAt > this.assignmentId.dueDate;
+  if (!this.submittedAt || !this.assignmentId) return false;
+  // Note: This will only work if assignmentId is populated with the full assignment object
+  const assignment = this.populated('assignmentId') ? (this.assignmentId as any) : null;
+  if (!assignment || !assignment.dueDate) return false;
+  return this.submittedAt > assignment.dueDate;
 });
 
 // Pre-save middleware to update writing stats
 submissionSchema.pre('save', function(next) {
   if (this.isModified('content')) {
-    this.writingStats.wordCount = this.currentWordCount;
+    // Calculate word count
+    const wordCount = this.content.split(/\s+/).filter((word: string) => word.length > 0).length;
+    this.writingStats.wordCount = wordCount;
     this.writingStats.characterCount = this.content.length;
     this.writingStats.revisionsCount += 1;
 

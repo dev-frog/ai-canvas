@@ -23,6 +23,54 @@ export async function verifyAuthToken(request: NextRequest) {
   }
 }
 
+// Alias for getAuth
+export async function getAuth(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Try to get from cookies
+      const token = request.cookies.get('token')?.value;
+      if (!token) {
+        return null;
+      }
+
+      const decodedToken = await adminAuth.verifyIdToken(token);
+      await connectToDatabase();
+      const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+      if (user) {
+        return {
+          uid: user.firebaseUid,
+          email: user.email,
+          role: user.role,
+          name: user.name,
+        };
+      }
+      return null;
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+
+    await connectToDatabase();
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    if (user) {
+      return {
+        uid: user.firebaseUid,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Auth verification error:', error);
+    return null;
+  }
+}
+
 export function requireAuth(handler: Function) {
   return async (request: NextRequest, context: any) => {
     const user = await verifyAuthToken(request);

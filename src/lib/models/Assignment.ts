@@ -52,13 +52,11 @@ const assignmentSchema = new Schema<AssignmentDocument>({
     required: true,
   },
   classId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Class',
+    type: String,
     required: true,
   },
   teacherId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
   },
   dueDate: {

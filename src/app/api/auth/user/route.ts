@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware/auth';
 
+// Mark this route as dynamic
+export const dynamic = 'force-dynamic';
+
 async function handler(request: NextRequest, context: any, user: any) {
   return NextResponse.json({
     success: true,

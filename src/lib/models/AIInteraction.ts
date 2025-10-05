@@ -5,13 +5,11 @@ interface AIInteractionDocument extends Omit<AIInteractionType, '_id'>, Document
 
 const aiInteractionSchema = new Schema<AIInteractionDocument>({
   userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
   },
   submissionId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Submission',
+    type: String,
     required: true,
   },
   type: {

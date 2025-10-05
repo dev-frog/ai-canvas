@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -11,7 +11,8 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -21,11 +22,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header user={user} onMenuClick={() => setSidebarOpen(true)} />
       <div className="flex">
-        <Sidebar />
+        <Sidebar user={user} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 md:ml-64">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">

@@ -14,17 +14,14 @@ const classSchema = new Schema<ClassDocument>({
     trim: true,
   },
   teacherId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
   },
   students: [{
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
   }],
   coTeachers: [{
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
   }],
   classCode: {
     type: String,
@@ -79,7 +76,7 @@ classSchema.methods.addStudent = function(studentId: string) {
 };
 
 classSchema.methods.removeStudent = function(studentId: string) {
-  this.students = this.students.filter(id => id.toString() !== studentId);
+  this.students = this.students.filter((id: string) => id !== studentId);
   return this.save();
 };
 
