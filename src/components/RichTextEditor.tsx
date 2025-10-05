@@ -4,8 +4,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Heading from '@tiptap/extension-heading';
 import TextAlign from '@tiptap/extension-text-align';
-import TextStyle from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
 import Link from '@tiptap/extension-link';
 import { useEffect, useState } from 'react';
 import {
@@ -324,7 +324,7 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
     },
     editorProps: {
       attributes: {
-        class: 'prose max-w-none focus:outline-none h-full p-6',
+        class: 'focus:outline-none min-h-[500px]',
       },
     },
   });
@@ -366,10 +366,10 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
   }, [editor?.state.doc]);
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col">
       <MenuBar editor={editor} />
-      <div className="flex-1 overflow-y-auto">
-        <EditorContent editor={editor} className="h-full math-content" />
+      <div className="px-12 py-6">
+        <EditorContent editor={editor} className="math-content prose prose-lg max-w-none focus:outline-none" />
       </div>
     </div>
   );

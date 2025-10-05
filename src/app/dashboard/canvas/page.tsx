@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { User } from '@/types';
 import dynamic from 'next/dynamic';
+import AIAutocomplete from '@/components/AIAutocomplete';
+import AIChat from '@/components/AIChat';
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
   ssr: false,
@@ -62,6 +64,9 @@ export default function CanvasPage() {
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [aiContinueSuggestion, setAiContinueSuggestion] = useState('');
+  const [showAIContinue, setShowAIContinue] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -370,6 +375,49 @@ export default function CanvasPage() {
     }
   };
 
+  const handleAIContinue = async () => {
+    if (isProcessingAI) return;
+
+    setIsProcessingAI(true);
+    setShowAIContinue(false);
+
+    try {
+      // TODO: Call actual AI API to continue writing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Mock AI response
+      const suggestions = [
+        ' This development has led to significant changes in how we approach environmental policy and climate action worldwide.',
+        ' Furthermore, recent studies have shown that immediate action is crucial to mitigating these effects.',
+        ' These findings suggest a complex relationship between human activity and environmental sustainability.',
+      ];
+
+      const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      setAiContinueSuggestion(randomSuggestion);
+      setShowAIContinue(true);
+      setAiTokensUsed(prev => prev + 15);
+    } catch (error) {
+      console.error('AI continue failed:', error);
+    } finally {
+      setIsProcessingAI(false);
+    }
+  };
+
+  const acceptAIContinue = (text: string) => {
+    setContent(prev => prev + text);
+    setShowAIContinue(false);
+    setAiContinueSuggestion('');
+  };
+
+  const rejectAIContinue = () => {
+    setShowAIContinue(false);
+    setAiContinueSuggestion('');
+  };
+
+  const insertFromChat = (text: string) => {
+    setContent(prev => prev + '\n\n' + text);
+  };
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
@@ -462,6 +510,16 @@ export default function CanvasPage() {
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
               <button
+                onClick={handleAIContinue}
+                disabled={isProcessingAI || !content}
+                className="flex items-center px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md text-sm font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                title="Continue writing with AI"
+              >
+                <SparklesIcon className="h-4 w-4 mr-2" />
+                {isProcessingAI ? 'Generating...' : 'Continue Writing'}
+              </button>
+
+              <button
                 onClick={() => setShowPreview(!showPreview)}
                 className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
@@ -470,11 +528,27 @@ export default function CanvasPage() {
               </button>
 
               <button
-                onClick={() => setShowAIPanel(!showAIPanel)}
-                className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                onClick={() => setShowAIChat(!showAIChat)}
+                className={`flex items-center px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
+                  showAIChat
+                    ? 'bg-purple-100 border-purple-300 text-purple-700'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                }`}
               >
                 <SparklesIcon className="h-4 w-4 mr-2" />
-                AI Assistant
+                AI Chat
+              </button>
+
+              <button
+                onClick={() => setShowAIPanel(!showAIPanel)}
+                className={`flex items-center px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
+                  showAIPanel
+                    ? 'bg-blue-100 border-blue-300 text-blue-700'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                }`}
+              >
+                <Cog6ToothIcon className="h-4 w-4 mr-2" />
+                Tools
               </button>
             </div>
           </div>
@@ -506,22 +580,25 @@ export default function CanvasPage() {
           )}
 
           {/* Writing Area */}
-          <div className="flex-1 p-6 overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-white">
             {showPreview ? (
-              <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-y-auto">
-                <div className="prose max-w-none" ref={previewRef}>
-                  <h1 className="text-4xl font-bold mb-6">{title}</h1>
-                  {content ? (
-                    <div dangerouslySetInnerHTML={{ __html: content }} />
-                  ) : (
-                    <p className="text-gray-500 italic">Your content will appear here...</p>
-                  )}
+              <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <style>{`.overflow-y-auto::-webkit-scrollbar { display: none; }`}</style>
+                <div className="max-w-4xl mx-auto p-12">
+                  <div className="prose max-w-none" ref={previewRef}>
+                    <h1 className="text-4xl font-bold mb-6">{title}</h1>
+                    {content ? (
+                      <div dangerouslySetInnerHTML={{ __html: content }} />
+                    ) : (
+                      <p className="text-gray-500 italic">Your content will appear here...</p>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="relative flex-1 flex flex-col min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
-                {/* Title Input */}
-                <div className="px-6 pt-6 pb-2 border-b border-gray-100">
+              <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
+                {/* Title Input - Fixed */}
+                <div className="max-w-4xl mx-auto w-full px-12 pt-8 pb-4 border-b border-gray-100 flex-shrink-0">
                   <input
                     type="text"
                     value={title}
@@ -536,13 +613,28 @@ export default function CanvasPage() {
                   />
                 </div>
 
-                {/* Rich Text Editor */}
-                <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                  <RichTextEditor
-                    content={content}
-                    onChange={(newContent) => setContent(newContent)}
-                    placeholder="Start writing your assignment here..."
-                  />
+                {/* Rich Text Editor - Scrollable */}
+                <div className="flex-1 overflow-y-auto relative" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <style>{`.overflow-y-auto::-webkit-scrollbar { display: none; }`}</style>
+                  <div className="max-w-4xl mx-auto w-full">
+                    <RichTextEditor
+                      content={content}
+                      onChange={(newContent) => setContent(newContent)}
+                      placeholder="Start writing your assignment here..."
+                    />
+                  </div>
+
+                  {/* AI Continue Suggestion */}
+                  {showAIContinue && aiContinueSuggestion && (
+                    <div className="fixed top-1/3 left-1/2 transform -translate-x-1/2 z-50">
+                      <AIAutocomplete
+                        suggestion={aiContinueSuggestion}
+                        onAccept={acceptAIContinue}
+                        onReject={rejectAIContinue}
+                        position={{ top: 0, left: 0 }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Autocomplete Suggestions */}
@@ -593,13 +685,20 @@ export default function CanvasPage() {
           </div>
         </div>
 
+        {/* AI Chat Sidebar */}
+        {showAIChat && (
+          <div className="w-96 border-l border-gray-200 flex-shrink-0">
+            <AIChat onInsert={insertFromChat} />
+          </div>
+        )}
+
         {/* AI Assistant Panel */}
-        {showAIPanel && (
+        {showAIPanel && !showAIChat && (
           <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
             <div className="p-4 border-b border-gray-200">
               <h2 className="text-lg font-medium text-gray-900 flex items-center">
                 <SparklesIcon className="h-5 w-5 mr-2 text-blue-500" />
-                AI Assistant
+                AI Tools
               </h2>
             </div>
 
