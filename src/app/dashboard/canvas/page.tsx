@@ -4,6 +4,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { User } from '@/types';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
+  ssr: false,
+});
 import {
   DocumentTextIcon,
   BookOpenIcon,
@@ -16,7 +21,8 @@ import {
   ExclamationTriangleIcon,
   ClockIcon,
   MagnifyingGlassIcon,
-  QuestionMarkCircleIcon
+  QuestionMarkCircleIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 interface Assignment {
@@ -51,8 +57,12 @@ export default function CanvasPage() {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const assignmentId = searchParams.get('assignment');
@@ -115,9 +125,35 @@ export default function CanvasPage() {
 
   // Update word count
   useEffect(() => {
-    const words = content.trim().split(/\s+/).filter(word => word.length > 0);
+    // Strip HTML tags and count words
+    const textContent = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = textContent.split(/\s+/).filter(word => word.length > 0);
     setWordCount(words.length);
   }, [content]);
+
+  // Render math in preview
+  useEffect(() => {
+    if (showPreview && previewRef.current) {
+      const renderMath = async () => {
+        const katex = (await import('katex')).default;
+        const html = previewRef.current?.innerHTML || '';
+        const rendered = html.replace(/\$\$(.*?)\$\$/g, (match, expression) => {
+          try {
+            return katex.renderToString(expression, {
+              throwOnError: false,
+              displayMode: true,
+            });
+          } catch (e) {
+            return match;
+          }
+        });
+        if (previewRef.current && html !== rendered) {
+          previewRef.current.innerHTML = rendered;
+        }
+      };
+      renderMath();
+    }
+  }, [showPreview, content]);
 
   const saveContent = async () => {
     if (!user || saving) return;
@@ -188,6 +224,61 @@ export default function CanvasPage() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!autocompleteEnabled || autocompleteSuggestions.length === 0) return;
+
+    if (e.key === 'Tab' || e.key === 'Enter') {
+      e.preventDefault();
+      acceptSuggestion();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setAutocompleteSuggestions([]);
+      setSelectedSuggestionIndex(0);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex((prev) =>
+        prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : 0);
+    }
+  };
+
+  const acceptSuggestion = () => {
+    if (autocompleteSuggestions.length > 0) {
+      const suggestion = autocompleteSuggestions[selectedSuggestionIndex];
+      setContent((prev) => prev + suggestion);
+      setAutocompleteSuggestions([]);
+      setSelectedSuggestionIndex(0);
+    }
+  };
+
+  // Simulate autocomplete suggestions
+  useEffect(() => {
+    if (!autocompleteEnabled || !content) {
+      setAutocompleteSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      // Mock autocomplete logic - in real app, this would call an API
+      const lastWords = content.split(' ').slice(-2).join(' ').toLowerCase();
+      const mockSuggestions: string[] = [];
+
+      if (lastWords.includes('climate')) {
+        mockSuggestions.push(' change impacts global ecosystems');
+        mockSuggestions.push(' patterns are shifting rapidly');
+        mockSuggestions.push(' science demonstrates clear evidence');
+      }
+
+      setAutocompleteSuggestions(mockSuggestions.slice(0, 6));
+      setSelectedSuggestionIndex(0);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [content, autocompleteEnabled]);
+
   const generateCitation = async () => {
     if (!selectedText) return;
 
@@ -236,6 +327,23 @@ export default function CanvasPage() {
                 </p>
               )}
             </div>
+
+            {/* New Assignment Button */}
+            <button
+              onClick={() => {
+                // Clear current content and assignment
+                setContent('');
+                setAssignment(null);
+                setAiAssistance([]);
+                setAutocompleteSuggestions([]);
+                router.push('/dashboard/canvas');
+              }}
+              className="ml-4 flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              title="Start a new assignment"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              New
+            </button>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -295,12 +403,12 @@ export default function CanvasPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Main Editor */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Assignment Info Panel */}
           {assignment && (
-            <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+            <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 flex-shrink-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-sm text-blue-800 mb-2">{assignment.description}</p>
@@ -320,28 +428,69 @@ export default function CanvasPage() {
           )}
 
           {/* Writing Area */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-6 overflow-hidden flex flex-col min-h-0">
             {showPreview ? (
-              <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-y-auto">
-                <div className="prose max-w-none">
+              <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-y-auto">
+                <div className="prose max-w-none" ref={previewRef}>
                   {content ? (
-                    <div dangerouslySetInnerHTML={{
-                      __html: content.replace(/\n/g, '<br>')
-                    }} />
+                    <div dangerouslySetInnerHTML={{ __html: content }} />
                   ) : (
                     <p className="text-gray-500 italic">Your content will appear here...</p>
                   )}
                 </div>
               </div>
             ) : (
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onSelect={handleTextSelection}
-                placeholder="Start writing your assignment here..."
-                className="w-full h-full resize-none border border-gray-200 rounded-lg p-6 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div className="relative flex-1 flex flex-col min-h-0">
+                <RichTextEditor
+                  content={content}
+                  onChange={(newContent) => setContent(newContent)}
+                  placeholder="Start writing your assignment here..."
+                />
+
+                {/* Autocomplete Suggestions */}
+                {autocompleteEnabled && autocompleteSuggestions.length > 0 && (
+                  <div
+                    className="absolute bottom-20 left-6 bg-white border border-gray-300 rounded-lg shadow-lg max-w-md z-50"
+                    role="listbox"
+                    aria-label="Autocomplete suggestions"
+                  >
+                    <div className="p-2 border-b border-gray-200 text-xs text-gray-500">
+                      {autocompleteSuggestions.length} suggestion{autocompleteSuggestions.length !== 1 ? 's' : ''} - Use ↑/↓ to navigate, Tab/Enter to accept, Esc to dismiss
+                    </div>
+                    {autocompleteSuggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className={`p-3 cursor-pointer text-sm ${
+                          index === selectedSuggestionIndex
+                            ? 'bg-blue-50 text-blue-900'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          setSelectedSuggestionIndex(index);
+                          acceptSuggestion();
+                        }}
+                        role="option"
+                        aria-selected={index === selectedSuggestionIndex}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Screen reader announcements */}
+                <div
+                  id="autocomplete-status"
+                  className="sr-only"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {autocompleteEnabled && autocompleteSuggestions.length > 0 &&
+                    `${autocompleteSuggestions.length} autocomplete suggestion${autocompleteSuggestions.length !== 1 ? 's' : ''} available`
+                  }
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -357,6 +506,46 @@ export default function CanvasPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Autocomplete Toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <label
+                      htmlFor="autocomplete-toggle"
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                      title="Show inline suggestions while you type. Use Tab to accept."
+                    >
+                      Autocomplete while typing
+                    </label>
+                    <div className="ml-2 group relative">
+                      <QuestionMarkCircleIcon className="h-4 w-4 text-gray-400 cursor-help" />
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-20">
+                        Show inline suggestions while you type. Use Tab to accept.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    id="autocomplete-toggle"
+                    onClick={() => setAutocompleteEnabled(!autocompleteEnabled)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      autocompleteEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                    role="switch"
+                    aria-checked={autocompleteEnabled}
+                    aria-label="Toggle autocomplete while typing"
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        autocompleteEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  When enabled, displays up to 6 inline autocomplete suggestions as you type, navigable with arrow keys and accepted with Tab or Enter.
+                </p>
+              </div>
+
               {/* Quick Actions */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-gray-700">Quick Actions</h3>
