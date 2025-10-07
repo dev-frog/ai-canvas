@@ -13,9 +13,13 @@ interface Message {
 
 interface AIChatProps {
   onInsert: (text: string) => void;
+  submissionId: string | null;
+  tokensUsed: number;
+  tokenLimit: number;
+  onTokenUpdate: (tokensUsed: number) => void;
 }
 
-export default function AIChat({ onInsert }: AIChatProps) {
+export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit, onTokenUpdate }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +41,28 @@ export default function AIChat({ onInsert }: AIChatProps) {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+
+    if (!submissionId) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Please save your assignment first before using AI chat.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+
+    if (tokensUsed >= tokenLimit) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `You have reached the token limit (${tokenLimit}) for this assignment. You cannot use more AI assistance.`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -71,6 +97,7 @@ export default function AIChat({ onInsert }: AIChatProps) {
             role: m.role,
             content: m.content,
           })),
+          submissionId,
         }),
       });
 
@@ -80,6 +107,11 @@ export default function AIChat({ onInsert }: AIChatProps) {
       }
 
       const data = await response.json();
+
+      // Update tokens used
+      if (data.tokensUsed !== undefined) {
+        onTokenUpdate(data.tokensUsed);
+      }
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -113,11 +145,34 @@ export default function AIChat({ onInsert }: AIChatProps) {
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
-        <div className="flex items-center">
-          <SparklesIcon className="h-5 w-5 text-purple-600 mr-2" />
-          <h3 className="text-sm font-semibold text-gray-900">AI Research Assistant</h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center">
+              <SparklesIcon className="h-5 w-5 text-purple-600 mr-2" />
+              <h3 className="text-sm font-semibold text-gray-900">AI Research Assistant</h3>
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Ask questions, get sources, or brainstorm ideas</p>
+          </div>
+          <div className="text-right">
+            <div className="text-xs font-medium text-gray-700">
+              {tokensUsed}/{tokenLimit}
+            </div>
+            <div className="text-xs text-gray-500">tokens</div>
+          </div>
         </div>
-        <p className="text-xs text-gray-600 mt-1">Ask questions, get sources, or brainstorm ideas</p>
+        {/* Token usage bar */}
+        <div className="mt-2">
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full transition-all ${
+                tokensUsed / tokenLimit > 0.9 ? 'bg-red-500' :
+                tokensUsed / tokenLimit > 0.7 ? 'bg-yellow-500' :
+                'bg-green-500'
+              }`}
+              style={{ width: `${Math.min((tokensUsed / tokenLimit) * 100, 100)}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
 
       {/* Messages */}

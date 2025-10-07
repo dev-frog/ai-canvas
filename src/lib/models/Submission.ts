@@ -77,6 +77,14 @@ const submissionSchema = new Schema<SubmissionDocument>({
       min: 0,
       max: 100,
     },
+    tokensUsed: {
+      type: Number,
+      default: 0,
+    },
+    tokenLimit: {
+      type: Number,
+      default: 1000,
+    },
   },
   writingStats: {
     timeSpentWriting: {

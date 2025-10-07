@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
           assignmentId: submission.assignmentId,
           createdAt: submission.createdAt,
           updatedAt: submission.updatedAt,
+          aiUsageStats: submission.aiUsageStats,
         }
       });
     } else {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@/lib/middleware/auth';
+import dbConnect from '@/lib/mongodb';
+import { Submission } from '@/lib/models';
 
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
@@ -14,15 +16,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Only students can use AI chat' }, { status: 403 });
     }
 
-    const { message, conversationHistory } = await req.json();
+    const { message, conversationHistory, submissionId } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    if (!submissionId) {
+      return NextResponse.json({ error: 'Submission ID is required' }, { status: 400 });
+    }
+
     if (!GEMINI_API_KEY) {
       console.error('Gemini API key not configured');
       return NextResponse.json({ error: 'AI service not configured' }, { status: 500 });
+    }
+
+    // Check token limit for this submission
+    await dbConnect();
+    const submission = await Submission.findById(submissionId);
+
+    if (!submission) {
+      return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+
+    // Check if user owns this submission
+    if (submission.studentId !== user.uid) {
+      return NextResponse.json({ error: 'Unauthorized access to submission' }, { status: 403 });
+    }
+
+    const tokensUsed = submission.aiUsageStats?.tokensUsed || 0;
+    const tokenLimit = submission.aiUsageStats?.tokenLimit || 1000;
+
+    if (tokensUsed >= tokenLimit) {
+      return NextResponse.json({
+        error: 'Token limit reached for this assignment',
+        tokensUsed,
+        tokenLimit
+      }, { status: 429 });
     }
 
     // Build conversation context for Gemini
@@ -103,11 +133,25 @@ Keep responses concise, informative, and educational. Focus on helping students 
 
     // Extract the response text from Gemini's response format
     const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I could not generate a response.';
+    const tokensUsedInRequest = data.usageMetadata?.totalTokenCount || 0;
+
+    // Update submission with tokens used
+    if (submission && tokensUsedInRequest > 0) {
+      submission.aiUsageStats = submission.aiUsageStats || {};
+      submission.aiUsageStats.tokensUsed = (submission.aiUsageStats.tokensUsed || 0) + tokensUsedInRequest;
+      submission.aiUsageStats.totalInteractions = (submission.aiUsageStats.totalInteractions || 0) + 1;
+      await submission.save();
+    }
+
+    const newTokensUsed = submission.aiUsageStats?.tokensUsed || 0;
+    const remainingTokens = tokenLimit - newTokensUsed;
 
     return NextResponse.json({
       success: true,
       response: aiResponse,
-      tokensUsed: data.usageMetadata?.totalTokenCount || 0,
+      tokensUsed: newTokensUsed,
+      tokenLimit,
+      remainingTokens,
     });
   } catch (error) {
     console.error('Error in AI chat:', error);

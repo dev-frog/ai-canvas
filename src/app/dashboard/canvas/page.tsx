@@ -59,6 +59,7 @@ export default function CanvasPage() {
   const [aiAssistance, setAiAssistance] = useState<AIAssistance[]>([]);
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [aiTokensUsed, setAiTokensUsed] = useState(0);
+  const [aiTokenLimit, setAiTokenLimit] = useState(1000);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -106,6 +107,8 @@ export default function CanvasPage() {
               setTitle(data.submission.title || 'Untitled');
               setContent(data.submission.content || '');
               setWordCount(data.submission.wordCount || 0);
+              setAiTokensUsed(data.submission.aiUsageStats?.tokensUsed || 0);
+              setAiTokenLimit(data.submission.aiUsageStats?.tokenLimit || 1000);
             }
           }
         }
@@ -708,7 +711,13 @@ export default function CanvasPage() {
         {/* AI Chat Sidebar */}
         {showAIChat && (
           <div className="w-96 border-l border-gray-200 flex-shrink-0">
-            <AIChat onInsert={insertFromChat} />
+            <AIChat
+              onInsert={insertFromChat}
+              submissionId={submissionId}
+              tokensUsed={aiTokensUsed}
+              tokenLimit={aiTokenLimit}
+              onTokenUpdate={setAiTokensUsed}
+            />
           </div>
         )}
 
