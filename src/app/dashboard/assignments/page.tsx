@@ -64,107 +64,85 @@ export default function AssignmentsPage() {
         }
         setUser(currentUser);
 
-        // Mock assignments data based on user role
-        const mockAssignments: Assignment[] = currentUser.role === 'student'
-          ? [
-              {
-                _id: '1',
-                title: 'Climate Change Essay',
-                description: 'Write a comprehensive essay discussing the impacts of climate change on global ecosystems.',
-                subject: 'Environmental Science',
-                dueDate: '2024-02-15',
-                createdDate: '2024-01-15',
-                maxWords: 2000,
-                citationStyle: 'APA',
-                requirements: ['Minimum 1500 words', 'At least 5 scholarly sources', 'Original analysis'],
-                status: 'published',
-                teacherName: 'Dr. Smith',
-                className: 'Environmental Science 101',
-                progress: 65,
-              },
-              {
-                _id: '2',
-                title: 'Historical Analysis: World War II',
-                description: 'Analyze the key factors that led to the outcome of World War II.',
-                subject: 'History',
-                dueDate: '2024-02-20',
-                createdDate: '2024-01-20',
-                maxWords: 1800,
-                citationStyle: 'Chicago',
-                requirements: ['Primary sources required', 'Minimum 1200 words', 'Proper citations'],
-                status: 'completed',
-                teacherName: 'Prof. Johnson',
-                className: 'Modern History',
-                progress: 100,
-                grade: 92,
-                feedback: 'Excellent analysis with strong supporting evidence.'
-              },
-              {
-                _id: '3',
-                title: 'Literature Review: Shakespeare',
-                description: 'Review and analyze themes in Shakespeare\'s major works.',
-                subject: 'Literature',
-                dueDate: '2024-01-30',
-                createdDate: '2024-01-10',
-                maxWords: 1500,
-                citationStyle: 'MLA',
-                requirements: ['Focus on major themes', 'Compare at least 3 works', 'Critical analysis'],
-                status: 'overdue',
-                teacherName: 'Dr. Williams',
-                className: 'English Literature',
-                progress: 30,
-              }
-            ]
-          : [ // Teacher/Admin assignments
-              {
-                _id: '1',
-                title: 'Climate Change Essay',
-                description: 'Write a comprehensive essay discussing the impacts of climate change on global ecosystems.',
-                subject: 'Environmental Science',
-                dueDate: '2024-02-15',
-                createdDate: '2024-01-15',
-                maxWords: 2000,
-                citationStyle: 'APA',
-                requirements: ['Minimum 1500 words', 'At least 5 scholarly sources', 'Original analysis'],
-                status: 'published',
-                submissions: 18,
-                totalStudents: 25,
-                className: 'Environmental Science 101'
-              },
-              {
-                _id: '2',
-                title: 'Research Methodology Paper',
-                description: 'Design and propose a research study using quantitative methods.',
-                subject: 'Research Methods',
-                dueDate: '2024-02-25',
-                createdDate: '2024-01-25',
-                maxWords: 2500,
-                citationStyle: 'APA',
-                requirements: ['Detailed methodology', 'Literature review', 'Expected outcomes'],
-                status: 'draft',
-                submissions: 0,
-                totalStudents: 22,
-                className: 'Research Methods 201'
-              },
-              {
-                _id: '3',
-                title: 'Lab Report: Chemical Reactions',
-                description: 'Document and analyze the results of chemistry lab experiments.',
-                subject: 'Chemistry',
-                dueDate: '2024-02-10',
-                createdDate: '2024-01-20',
-                maxWords: 1200,
-                citationStyle: 'APA',
-                requirements: ['Data analysis', 'Methodology description', 'Conclusions'],
-                status: 'published',
-                submissions: 20,
-                totalStudents: 20,
-                className: 'Chemistry 102'
-              }
-            ];
-
-        setAssignments(mockAssignments);
-        setFilteredAssignments(mockAssignments);
+        if (currentUser.role === 'student') {
+          // Fetch saved submissions (canvases) from API
+          const response = await fetch('/api/canvas');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.submissions) {
+              // Transform submissions into assignment format
+              const submissionAssignments: Assignment[] = data.submissions.map((sub: any) => ({
+                _id: sub._id,
+                title: sub.title || 'Untitled',
+                description: sub.content ? sub.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content yet',
+                subject: 'Personal Work',
+                dueDate: sub.updatedAt,
+                createdDate: sub.createdAt,
+                citationStyle: 'APA' as const,
+                requirements: [],
+                status: sub.status === 'submitted' ? 'completed' as const : 'draft' as const,
+                progress: sub.wordCount > 0 ? Math.min(100, Math.floor((sub.wordCount / 1000) * 100)) : 0,
+              }));
+              setAssignments(submissionAssignments);
+              setFilteredAssignments(submissionAssignments);
+            }
+          } else {
+            console.error('Failed to fetch submissions');
+            setAssignments([]);
+            setFilteredAssignments([]);
+          }
+        } else {
+          // Teacher/Admin - show mock assignments for now
+          const mockAssignments: Assignment[] = [
+            {
+              _id: '1',
+              title: 'Climate Change Essay',
+              description: 'Write a comprehensive essay discussing the impacts of climate change on global ecosystems.',
+              subject: 'Environmental Science',
+              dueDate: '2024-02-15',
+              createdDate: '2024-01-15',
+              maxWords: 2000,
+              citationStyle: 'APA',
+              requirements: ['Minimum 1500 words', 'At least 5 scholarly sources', 'Original analysis'],
+              status: 'published',
+              submissions: 18,
+              totalStudents: 25,
+              className: 'Environmental Science 101'
+            },
+            {
+              _id: '2',
+              title: 'Research Methodology Paper',
+              description: 'Design and propose a research study using quantitative methods.',
+              subject: 'Research Methods',
+              dueDate: '2024-02-25',
+              createdDate: '2024-01-25',
+              maxWords: 2500,
+              citationStyle: 'APA',
+              requirements: ['Detailed methodology', 'Literature review', 'Expected outcomes'],
+              status: 'draft',
+              submissions: 0,
+              totalStudents: 22,
+              className: 'Research Methods 201'
+            },
+            {
+              _id: '3',
+              title: 'Lab Report: Chemical Reactions',
+              description: 'Document and analyze the results of chemistry lab experiments.',
+              subject: 'Chemistry',
+              dueDate: '2024-02-10',
+              createdDate: '2024-01-20',
+              maxWords: 1200,
+              citationStyle: 'APA',
+              requirements: ['Data analysis', 'Methodology description', 'Conclusions'],
+              status: 'published',
+              submissions: 20,
+              totalStudents: 20,
+              className: 'Chemistry 102'
+            }
+          ];
+          setAssignments(mockAssignments);
+          setFilteredAssignments(mockAssignments);
+        }
       } catch (error) {
         console.error('Failed to load assignments:', error);
         router.push('/auth/login');
@@ -472,15 +450,26 @@ export default function AssignmentsPage() {
                     {user?.role === 'student' ? (
                       <div className="flex space-x-2">
                         <Link
-                          href={`/dashboard/canvas?assignment=${assignment._id}`}
+                          href={`/dashboard/canvas?id=${assignment._id}`}
                           className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                         >
                           <PencilIcon className="h-4 w-4 mr-1" />
-                          {assignment.progress && assignment.progress > 0 ? 'Continue' : 'Start'}
+                          {assignment.progress && assignment.progress > 0 ? 'Continue' : 'Open'}
                         </Link>
-                        <button className="flex items-center px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium">
-                          <EyeIcon className="h-4 w-4 mr-1" />
-                          View
+                        <button
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to delete this assignment?')) {
+                              const response = await fetch(`/api/canvas?id=${assignment._id}`, { method: 'DELETE' });
+                              if (response.ok) {
+                                setAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                setFilteredAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                              }
+                            }
+                          }}
+                          className="flex items-center px-3 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 text-sm font-medium"
+                        >
+                          <TrashIcon className="h-4 w-4 mr-1" />
+                          Delete
                         </button>
                       </div>
                     ) : (
@@ -594,13 +583,24 @@ export default function AssignmentsPage() {
                           {user?.role === 'student' ? (
                             <>
                               <Link
-                                href={`/dashboard/canvas?assignment=${assignment._id}`}
+                                href={`/dashboard/canvas?id=${assignment._id}`}
                                 className="text-blue-600 hover:text-blue-900"
                               >
-                                {assignment.progress && assignment.progress > 0 ? 'Continue' : 'Start'}
+                                {assignment.progress && assignment.progress > 0 ? 'Continue' : 'Open'}
                               </Link>
-                              <button className="text-gray-600 hover:text-gray-900">
-                                View
+                              <button
+                                onClick={async () => {
+                                  if (confirm('Are you sure you want to delete this assignment?')) {
+                                    const response = await fetch(`/api/canvas?id=${assignment._id}`, { method: 'DELETE' });
+                                    if (response.ok) {
+                                      setAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                      setFilteredAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                    }
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Delete
                               </button>
                             </>
                           ) : (

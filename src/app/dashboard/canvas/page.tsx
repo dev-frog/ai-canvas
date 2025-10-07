@@ -145,7 +145,8 @@ export default function CanvasPage() {
     }, 5000); // Auto-save after 5 seconds of inactivity
 
     return () => clearTimeout(autoSaveTimer);
-  }, [content, title, user, wordCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, title]);
 
   // Update word count
   useEffect(() => {
@@ -180,7 +181,11 @@ export default function CanvasPage() {
   }, [showPreview, content]);
 
   const saveContent = async () => {
-    if (!user || saving) return;
+    if (!user) return;
+    if (saving) return;
+
+    // Skip if no actual content to save
+    if (!content && title === 'Untitled') return;
 
     setSaving(true);
     try {
@@ -235,8 +240,9 @@ export default function CanvasPage() {
         if (data.success && data.submission) {
           setSubmissionId(data.submission._id);
           setLastSaved(new Date());
-          // Update URL with submission ID
-          router.replace(`/dashboard/canvas?id=${data.submission._id}${assignmentId ? `&assignment=${assignmentId}` : ''}`);
+          // Update URL with submission ID without reloading
+          const newUrl = `/dashboard/canvas?id=${data.submission._id}${assignmentId ? `&assignment=${assignmentId}` : ''}`;
+          window.history.replaceState({ ...window.history.state }, '', newUrl);
         }
       }
     } catch (error) {
@@ -450,19 +456,8 @@ export default function CanvasPage() {
             {/* New Assignment Button */}
             <button
               onClick={() => {
-                // Clear all state
-                setContent('');
-                setTitle('Untitled');
-                setSubmissionId(null);
-                setAssignment(null);
-                setAiAssistance([]);
-                setAutocompleteSuggestions([]);
-                setWordCount(0);
-                setLastSaved(null);
-                setSaving(false);
-
-                // Navigate to clean canvas URL
-                router.replace('/dashboard/canvas');
+                // Navigate to clean canvas URL - this will trigger a full reload
+                window.location.href = '/dashboard/canvas';
               }}
               className="ml-4 flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               title="Start a new assignment"
@@ -488,7 +483,12 @@ export default function CanvasPage() {
             </div>
 
             {/* Save Status */}
-            <div className="flex items-center text-sm text-gray-500">
+            <button
+              onClick={saveContent}
+              disabled={saving}
+              className="flex items-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              title="Click to save now"
+            >
               {saving ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -501,11 +501,11 @@ export default function CanvasPage() {
                 </>
               ) : (
                 <>
-                  <ClockIcon className="h-4 w-4 mr-2" />
-                  Not saved
+                  <CloudArrowUpIcon className="h-4 w-4 mr-2" />
+                  Click to save
                 </>
               )}
-            </div>
+            </button>
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
