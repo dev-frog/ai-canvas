@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, SparklesIcon, BookOpenIcon, LightBulbIcon } from '@heroicons/react/24/outline';
+import { auth } from '@/lib/firebase';
 
 interface Message {
   id: string;
@@ -45,23 +46,60 @@ export default function AIChat({ onInsert }: AIChatProps) {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      // TODO: Call actual AI API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get Firebase auth token
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
+      const idToken = await currentUser.getIdToken();
+
+      // Call AI API with conversation history
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          conversationHistory: messages.map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI response');
+      }
+
+      const data = await response.json();
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Here's a helpful response to: "${input}". This is a mock response. In production, this would call your AI API.`,
+        content: data.response,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('AI chat error:', error);
+
+      // Show error message to user
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +157,11 @@ export default function AIChat({ onInsert }: AIChatProps) {
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none">
+                  {message.content.split('\n').map((line, i) => (
+                    <p key={i} className="mb-2 last:mb-0">{line}</p>
+                  ))}
+                </div>
                 {message.role === 'assistant' && (
                   <button
                     onClick={() => onInsert(message.content)}
