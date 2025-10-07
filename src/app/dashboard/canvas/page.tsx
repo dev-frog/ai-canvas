@@ -447,6 +447,56 @@ export default function CanvasPage() {
     setContent(prev => prev + '\n\n' + text);
   };
 
+  const handleAutocompleteRequest = async (currentText: string): Promise<string> => {
+    // Strictly check token limit before making request
+    if (!submissionId) {
+      return '';
+    }
+
+    if (aiTokensUsed >= aiTokenLimit) {
+      console.log('Token limit reached. Cannot request autocomplete.');
+      return '';
+    }
+
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        return '';
+      }
+      const idToken = await currentUser.getIdToken();
+
+      const response = await fetch('/api/ai/autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          text: currentText,
+          submissionId,
+        }),
+      });
+
+      if (!response.ok) {
+        return '';
+      }
+
+      const data = await response.json();
+      if (data.success && data.suggestion) {
+        // Update token usage
+        if (data.tokensUsed !== undefined) {
+          setAiTokensUsed(data.tokensUsed);
+        }
+        return data.suggestion;
+      }
+
+      return '';
+    } catch (error) {
+      console.error('Autocomplete error:', error);
+      return '';
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
@@ -644,6 +694,8 @@ export default function CanvasPage() {
                       content={content}
                       onChange={(newContent) => setContent(newContent)}
                       placeholder="Start writing your assignment here..."
+                      autocompleteEnabled={autocompleteEnabled}
+                      onAutocompleteRequest={handleAutocompleteRequest}
                     />
                   </div>
 
@@ -717,6 +769,8 @@ export default function CanvasPage() {
               tokensUsed={aiTokensUsed}
               tokenLimit={aiTokenLimit}
               onTokenUpdate={setAiTokensUsed}
+              assignmentTitle={assignment?.title || title}
+              currentContent={content}
             />
           </div>
         )}

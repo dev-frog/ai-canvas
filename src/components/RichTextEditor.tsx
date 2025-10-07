@@ -7,7 +7,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Link from '@tiptap/extension-link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   BoldIcon,
   ItalicIcon,
@@ -18,7 +18,8 @@ import {
   CodeBracketIcon,
   MinusIcon,
   ArrowUturnLeftIcon,
-  ArrowUturnRightIcon
+  ArrowUturnRightIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 import 'katex/dist/katex.min.css';
 
@@ -27,6 +28,8 @@ interface RichTextEditorProps {
   onChange: (content: string) => void;
   onKeyDown?: (e: any) => void;
   placeholder?: string;
+  autocompleteEnabled?: boolean;
+  onAutocompleteRequest?: (text: string) => Promise<string>;
 }
 
 const MenuBar = ({ editor }: { editor: any }) => {
@@ -301,7 +304,11 @@ const MenuBar = ({ editor }: { editor: any }) => {
   );
 };
 
-export default function RichTextEditor({ content, onChange, onKeyDown, placeholder }: RichTextEditorProps) {
+export default function RichTextEditor({ content, onChange, onKeyDown, placeholder, autocompleteEnabled, onAutocompleteRequest }: RichTextEditorProps) {
+  const [autocompleteSuggestion, setAutocompleteSuggestion] = useState('');
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -321,10 +328,50 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+
+      // Trigger autocomplete if enabled
+      if (autocompleteEnabled && onAutocompleteRequest) {
+        // Clear existing timeout
+        if (suggestionTimeoutRef.current) {
+          clearTimeout(suggestionTimeoutRef.current);
+        }
+
+        // Set new timeout
+        suggestionTimeoutRef.current = setTimeout(async () => {
+          const text = editor.getText();
+          if (text.length > 50) { // Only suggest if there's enough context
+            setIsLoadingSuggestion(true);
+            try {
+              const suggestion = await onAutocompleteRequest(text);
+              setAutocompleteSuggestion(suggestion);
+            } catch (error) {
+              console.error('Autocomplete error:', error);
+            } finally {
+              setIsLoadingSuggestion(false);
+            }
+          }
+        }, 2000); // Wait 2 seconds after typing stops
+      }
     },
     editorProps: {
       attributes: {
         class: 'focus:outline-none min-h-[500px]',
+      },
+      handleKeyDown: (view, event) => {
+        // Accept suggestion with Tab key
+        if (event.key === 'Tab' && autocompleteSuggestion && autocompleteEnabled) {
+          event.preventDefault();
+          editor?.commands.insertContent(autocompleteSuggestion);
+          setAutocompleteSuggestion('');
+          return true;
+        }
+        // Clear suggestion on Escape
+        if (event.key === 'Escape' && autocompleteSuggestion) {
+          event.preventDefault();
+          setAutocompleteSuggestion('');
+          return true;
+        }
+        return false;
       },
     },
   });
@@ -368,9 +415,64 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
   return (
     <div className="flex flex-col">
       <MenuBar editor={editor} />
-      <div className="px-12 py-6">
+      <div className="px-12 py-6 relative">
         <EditorContent editor={editor} className="math-content prose prose-lg max-w-none focus:outline-none" />
+
+        {/* Autocomplete Suggestion */}
+        {autocompleteEnabled && autocompleteSuggestion && (
+          <div className="fixed bottom-20 right-8 max-w-md bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg shadow-lg p-4 z-50 animate-fadeIn">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center">
+                <SparklesIcon className="h-4 w-4 text-purple-600 mr-2" />
+                <span className="text-xs font-semibold text-gray-700">AI Suggestion</span>
+              </div>
+              <button
+                onClick={() => setAutocompleteSuggestion('')}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-700 mb-3">{autocompleteSuggestion}</p>
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-500">
+                Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Tab</kbd> to accept
+              </div>
+              <button
+                onClick={() => {
+                  editor?.commands.insertContent(autocompleteSuggestion);
+                  setAutocompleteSuggestion('');
+                }}
+                className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
+              >
+                Insert
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading indicator */}
+        {autocompleteEnabled && isLoadingSuggestion && (
+          <div className="fixed bottom-20 right-8 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
+            <div className="flex items-center text-sm text-gray-600">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+              Getting AI suggestion...
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

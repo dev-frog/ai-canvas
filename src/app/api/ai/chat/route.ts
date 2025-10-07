@@ -47,9 +47,11 @@ export async function POST(req: NextRequest) {
     const tokensUsed = submission.aiUsageStats?.tokensUsed || 0;
     const tokenLimit = submission.aiUsageStats?.tokenLimit || 1000;
 
+    // Strictly enforce token limit - do not allow any requests if at or above limit
     if (tokensUsed >= tokenLimit) {
       return NextResponse.json({
-        error: 'Token limit reached for this assignment',
+        success: false,
+        error: 'You have reached the token limit (1000) for this assignment. You cannot use more AI assistance.',
         tokensUsed,
         tokenLimit
       }, { status: 429 });
@@ -135,16 +137,20 @@ Keep responses concise, informative, and educational. Focus on helping students 
     const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I could not generate a response.';
     const tokensUsedInRequest = data.usageMetadata?.totalTokenCount || 0;
 
-    // Update submission with tokens used
+    // Update submission with tokens used, but cap at token limit
     if (submission && tokensUsedInRequest > 0) {
       submission.aiUsageStats = submission.aiUsageStats || {};
-      submission.aiUsageStats.tokensUsed = (submission.aiUsageStats.tokensUsed || 0) + tokensUsedInRequest;
+      const currentTokens = submission.aiUsageStats.tokensUsed || 0;
+      const newTotal = currentTokens + tokensUsedInRequest;
+
+      // Cap at token limit to prevent exceeding
+      submission.aiUsageStats.tokensUsed = Math.min(newTotal, tokenLimit);
       submission.aiUsageStats.totalInteractions = (submission.aiUsageStats.totalInteractions || 0) + 1;
       await submission.save();
     }
 
     const newTokensUsed = submission.aiUsageStats?.tokensUsed || 0;
-    const remainingTokens = tokenLimit - newTokensUsed;
+    const remainingTokens = Math.max(0, tokenLimit - newTokensUsed);
 
     return NextResponse.json({
       success: true,

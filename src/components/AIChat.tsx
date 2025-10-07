@@ -17,9 +17,11 @@ interface AIChatProps {
   tokensUsed: number;
   tokenLimit: number;
   onTokenUpdate: (tokensUsed: number) => void;
+  assignmentTitle?: string;
+  currentContent?: string;
 }
 
-export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit, onTokenUpdate }: AIChatProps) {
+export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit, onTokenUpdate, assignmentTitle, currentContent }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,11 +35,29 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
     scrollToBottom();
   }, [messages]);
 
-  const quickPrompts = [
-    { icon: LightBulbIcon, text: 'Give me ideas for my introduction', color: 'text-yellow-600' },
-    { icon: BookOpenIcon, text: 'Find sources about climate change', color: 'text-blue-600' },
-    { icon: SparklesIcon, text: 'Help me improve this paragraph', color: 'text-purple-600' },
-  ];
+  // Generate dynamic prompts based on assignment context
+  const getQuickPrompts = () => {
+    const hasContent = currentContent && currentContent.length > 100;
+    const title = assignmentTitle || 'your assignment';
+
+    if (!hasContent) {
+      // Starting prompts
+      return [
+        { icon: LightBulbIcon, text: `Give me ideas to start writing about "${title}"`, color: 'text-yellow-600' },
+        { icon: BookOpenIcon, text: `Find sources related to "${title}"`, color: 'text-blue-600' },
+        { icon: SparklesIcon, text: `Help me create an outline for "${title}"`, color: 'text-purple-600' },
+      ];
+    } else {
+      // Continuation prompts
+      return [
+        { icon: SparklesIcon, text: `Help me improve my current writing`, color: 'text-purple-600' },
+        { icon: LightBulbIcon, text: `What should I write next?`, color: 'text-yellow-600' },
+        { icon: BookOpenIcon, text: `Suggest sources to support my arguments`, color: 'text-blue-600' },
+      ];
+    }
+  };
+
+  const quickPrompts = getQuickPrompts();
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -57,7 +77,7 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `You have reached the token limit (${tokenLimit}) for this assignment. You cannot use more AI assistance.`,
+        content: `⚠️ Token Limit Reached!\n\nYou have used all ${tokenLimit} tokens for this assignment. You cannot use more AI assistance for this assignment.\n\nYour token usage: ${tokensUsed}/${tokenLimit}`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -165,6 +185,7 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div
               className={`h-1.5 rounded-full transition-all ${
+                tokensUsed >= tokenLimit ? 'bg-red-600' :
                 tokensUsed / tokenLimit > 0.9 ? 'bg-red-500' :
                 tokensUsed / tokenLimit > 0.7 ? 'bg-yellow-500' :
                 'bg-green-500'
@@ -172,16 +193,26 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
               style={{ width: `${Math.min((tokensUsed / tokenLimit) * 100, 100)}%` }}
             ></div>
           </div>
+          {tokensUsed >= tokenLimit && (
+            <p className="text-xs text-red-600 font-medium mt-1">
+              ⚠️ Token limit reached! Cannot use more AI assistance.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
+          <div className="text-center text-gray-500 mt-8 px-2">
             <SparklesIcon className="h-12 w-12 mx-auto mb-3 text-purple-300" />
-            <p className="text-sm font-medium">Start a conversation</p>
-            <p className="text-xs mt-1">Ask me anything to help with your writing</p>
+            <p className="text-sm font-medium">AI Research Assistant</p>
+            <p className="text-xs mt-1">
+              {assignmentTitle && assignmentTitle !== 'Untitled'
+                ? `Get help with "${assignmentTitle}"`
+                : 'Ask me anything to help with your writing'
+              }
+            </p>
 
             {/* Quick Prompts */}
             <div className="mt-6 space-y-2">
@@ -192,7 +223,7 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
                   className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors"
                 >
                   <div className="flex items-start">
-                    <prompt.icon className={`h-4 w-4 mr-2 mt-0.5 ${prompt.color}`} />
+                    <prompt.icon className={`h-4 w-4 mr-2 mt-0.5 flex-shrink-0 ${prompt.color}`} />
                     <span className="text-xs text-gray-700">{prompt.text}</span>
                   </div>
                 </button>
