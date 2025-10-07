@@ -7,6 +7,7 @@ import { User } from '@/types';
 import dynamic from 'next/dynamic';
 import AIAutocomplete from '@/components/AIAutocomplete';
 import AIChat from '@/components/AIChat';
+import { auth } from '@/lib/firebase';
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
   ssr: false,
@@ -91,8 +92,13 @@ export default function CanvasPage() {
         setAiTokensUsed(currentUser.aiTokensUsed || 0);
 
         // Load existing canvas document if ID provided
-        if (canvasId) {
-          const response = await fetch(`/api/canvas?id=${canvasId}`);
+        if (canvasId && auth.currentUser) {
+          const idToken = await auth.currentUser.getIdToken();
+          const response = await fetch(`/api/canvas?id=${canvasId}`, {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+            },
+          });
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.submission) {
@@ -189,12 +195,23 @@ export default function CanvasPage() {
 
     setSaving(true);
     try {
+      // Get fresh token from Firebase
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.error('No authenticated user');
+        return;
+      }
+      const idToken = await currentUser.getIdToken();
+
       if (submissionId) {
         // Update existing submission
         console.log('Updating submission:', submissionId);
         const response = await fetch('/api/canvas', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
             id: submissionId,
             title,
@@ -221,7 +238,10 @@ export default function CanvasPage() {
         console.log('Creating new submission');
         const response = await fetch('/api/canvas', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
             title,
             content,

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { User } from '@/types';
+import { auth } from '@/lib/firebase';
 import {
   PlusIcon,
   DocumentTextIcon,
@@ -66,30 +67,37 @@ export default function AssignmentsPage() {
 
         if (currentUser.role === 'student') {
           // Fetch saved submissions (canvases) from API
-          const response = await fetch('/api/canvas');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.submissions) {
-              // Transform submissions into assignment format
-              const submissionAssignments: Assignment[] = data.submissions.map((sub: any) => ({
-                _id: sub._id,
-                title: sub.title || 'Untitled',
-                description: sub.content ? sub.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content yet',
-                subject: 'Personal Work',
-                dueDate: sub.updatedAt,
-                createdDate: sub.createdAt,
-                citationStyle: 'APA' as const,
-                requirements: [],
-                status: sub.status === 'submitted' ? 'completed' as const : 'draft' as const,
-                progress: sub.wordCount > 0 ? Math.min(100, Math.floor((sub.wordCount / 1000) * 100)) : 0,
-              }));
-              setAssignments(submissionAssignments);
-              setFilteredAssignments(submissionAssignments);
+          if (auth.currentUser) {
+            const idToken = await auth.currentUser.getIdToken();
+            const response = await fetch('/api/canvas', {
+              headers: {
+                'Authorization': `Bearer ${idToken}`,
+              },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.submissions) {
+                // Transform submissions into assignment format
+                const submissionAssignments: Assignment[] = data.submissions.map((sub: any) => ({
+                  _id: sub._id,
+                  title: sub.title || 'Untitled',
+                  description: sub.content ? sub.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content yet',
+                  subject: 'Personal Work',
+                  dueDate: sub.updatedAt,
+                  createdDate: sub.createdAt,
+                  citationStyle: 'APA' as const,
+                  requirements: [],
+                  status: sub.status === 'submitted' ? 'completed' as const : 'draft' as const,
+                  progress: sub.wordCount > 0 ? Math.min(100, Math.floor((sub.wordCount / 1000) * 100)) : 0,
+                }));
+                setAssignments(submissionAssignments);
+                setFilteredAssignments(submissionAssignments);
+              }
+            } else {
+              console.error('Failed to fetch submissions');
+              setAssignments([]);
+              setFilteredAssignments([]);
             }
-          } else {
-            console.error('Failed to fetch submissions');
-            setAssignments([]);
-            setFilteredAssignments([]);
           }
         } else {
           // Teacher/Admin - show mock assignments for now
@@ -459,10 +467,18 @@ export default function AssignmentsPage() {
                         <button
                           onClick={async () => {
                             if (confirm('Are you sure you want to delete this assignment?')) {
-                              const response = await fetch(`/api/canvas?id=${assignment._id}`, { method: 'DELETE' });
-                              if (response.ok) {
-                                setAssignments(prev => prev.filter(a => a._id !== assignment._id));
-                                setFilteredAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                              if (auth.currentUser) {
+                                const idToken = await auth.currentUser.getIdToken();
+                                const response = await fetch(`/api/canvas?id=${assignment._id}`, {
+                                  method: 'DELETE',
+                                  headers: {
+                                    'Authorization': `Bearer ${idToken}`,
+                                  },
+                                });
+                                if (response.ok) {
+                                  setAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                  setFilteredAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                }
                               }
                             }
                           }}
@@ -591,10 +607,18 @@ export default function AssignmentsPage() {
                               <button
                                 onClick={async () => {
                                   if (confirm('Are you sure you want to delete this assignment?')) {
-                                    const response = await fetch(`/api/canvas?id=${assignment._id}`, { method: 'DELETE' });
-                                    if (response.ok) {
-                                      setAssignments(prev => prev.filter(a => a._id !== assignment._id));
-                                      setFilteredAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                    if (auth.currentUser) {
+                                      const idToken = await auth.currentUser.getIdToken();
+                                      const response = await fetch(`/api/canvas?id=${assignment._id}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                          'Authorization': `Bearer ${idToken}`,
+                                        },
+                                      });
+                                      if (response.ok) {
+                                        setAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                        setFilteredAssignments(prev => prev.filter(a => a._id !== assignment._id));
+                                      }
                                     }
                                   }
                                 }}
