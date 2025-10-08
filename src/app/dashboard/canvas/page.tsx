@@ -278,33 +278,60 @@ export default function CanvasPage() {
   const getAIAssistance = async (text: string, type: 'grammar' | 'style' | 'citation' | 'content' = 'grammar') => {
     if (!user || isProcessingAI) return;
 
+    if (!submissionId) {
+      alert('Please save your assignment first before using AI assistance.');
+      return;
+    }
+
+    if (aiTokensUsed >= aiTokenLimit) {
+      alert('You have reached the token limit for this assignment.');
+      return;
+    }
+
+    if (!text || text.length < 50) {
+      alert('Please write at least 50 characters before requesting AI assistance.');
+      return;
+    }
+
     setIsProcessingAI(true);
     try {
-      // TODO: Call AI API
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate AI processing
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
+      const idToken = await currentUser.getIdToken();
 
-      // Mock AI suggestions
-      const mockSuggestions: AIAssistance[] = [
-        {
-          type: 'grammar',
-          suggestion: 'Consider changing "their" to "its" for proper subject-verb agreement.',
-          original: 'The ecosystem and their biodiversity',
-          position: text.indexOf('their'),
-          confidence: 0.95
+      const response = await fetch('/api/ai/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
-        {
-          type: 'style',
-          suggestion: 'This sentence could be more concise. Consider: "Climate change significantly impacts global ecosystems."',
-          original: 'Climate change is having a very significant impact on ecosystems around the world.',
-          position: 0,
-          confidence: 0.87
-        }
-      ];
+        body: JSON.stringify({
+          text,
+          type,
+          submissionId,
+        }),
+      });
 
-      setAiAssistance(prev => [...prev, ...mockSuggestions]);
-      setAiTokensUsed(prev => prev + 10); // Mock token usage
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI suggestions');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.suggestions && data.suggestions.length > 0) {
+        setAiAssistance(prev => [...prev, ...data.suggestions]);
+        if (data.tokensUsed !== undefined) {
+          setAiTokensUsed(data.tokensUsed);
+        }
+      } else {
+        alert(`No ${type} suggestions found. Your writing looks good!`);
+      }
     } catch (error) {
       console.error('AI assistance failed:', error);
+      alert('Failed to get AI suggestions. Please try again.');
     } finally {
       setIsProcessingAI(false);
     }
@@ -868,31 +895,53 @@ export default function CanvasPage() {
               {/* AI Suggestions */}
               {aiAssistance.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-gray-700">Suggestions</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-700">AI Suggestions ({aiAssistance.length})</h3>
+                    <button
+                      onClick={() => setAiAssistance([])}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear all
+                    </button>
+                  </div>
                   {aiAssistance.map((suggestion, index) => (
-                    <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div key={index} className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-3">
                       <div className="flex items-start justify-between mb-2">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 capitalize">
                           {suggestion.type}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {Math.round(suggestion.confidence * 100)}% confident
+                          {Math.round((suggestion.confidence || 0.85) * 100)}% confident
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">{suggestion.suggestion}</p>
+                      {suggestion.original && (
+                        <div className="mb-2">
+                          <p className="text-xs text-gray-500 mb-1">Original:</p>
+                          <p className="text-sm text-gray-700 italic bg-white px-2 py-1 rounded">"{suggestion.original}"</p>
+                        </div>
+                      )}
+                      <div className="mb-2">
+                        <p className="text-xs text-gray-500 mb-1">Suggestion:</p>
+                        <p className="text-sm text-gray-900 font-medium">{suggestion.suggestion}</p>
+                      </div>
+                      {(suggestion as any).explanation && (
+                        <p className="text-xs text-gray-600 mb-3 italic">{(suggestion as any).explanation}</p>
+                      )}
                       <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => dismissSuggestion(suggestion)}
-                          className="text-xs text-gray-500 hover:text-gray-700"
+                          className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50"
                         >
                           Dismiss
                         </button>
-                        <button
-                          onClick={() => applySuggestion(suggestion)}
-                          className="text-xs text-blue-600 hover:text-blue-500 font-medium"
-                        >
-                          Apply
-                        </button>
+                        {suggestion.original && (
+                          <button
+                            onClick={() => applySuggestion(suggestion)}
+                            className="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded font-medium"
+                          >
+                            Apply Fix
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
