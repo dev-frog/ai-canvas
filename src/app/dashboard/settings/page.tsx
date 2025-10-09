@@ -107,11 +107,28 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white shadow rounded-lg">
           <div className="border-b border-gray-200">
-            <div className="px-6 py-4">
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-gray-600">Manage your account settings and preferences</p>
+            <div className="px-4 sm:px-6 py-4">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Settings</h1>
+              <p className="text-sm sm:text-base text-gray-600">Manage your account settings and preferences</p>
             </div>
-            <nav className="flex space-x-8 px-6">
+
+            {/* Mobile Dropdown */}
+            <div className="sm:hidden px-4 pb-4">
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {tabs.map((tab) => (
+                  <option key={tab.id} value={tab.id}>
+                    {tab.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Desktop Tabs */}
+            <nav className="hidden sm:flex space-x-8 px-6 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -129,10 +146,10 @@ export default function SettingsPage() {
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {activeTab === 'profile' && (
               <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Profile Information</h2>
+                <h2 className="text-base sm:text-lg font-medium text-gray-900">Profile Information</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -181,7 +198,7 @@ export default function SettingsPage() {
 
             {activeTab === 'preferences' && (
               <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Academic Preferences</h2>
+                <h2 className="text-base sm:text-lg font-medium text-gray-900">Academic Preferences</h2>
 
                 <div className="space-y-4">
                   <div>
@@ -267,7 +284,7 @@ export default function SettingsPage() {
 
             {activeTab === 'notifications' && (
               <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Notification Preferences</h2>
+                <h2 className="text-base sm:text-lg font-medium text-gray-900">Notification Preferences</h2>
                 <div className="space-y-4">
                   <p className="text-gray-600">Notification settings will be available in a future update.</p>
                 </div>
@@ -276,7 +293,7 @@ export default function SettingsPage() {
 
             {activeTab === 'security' && (
               <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Security Settings</h2>
+                <h2 className="text-base sm:text-lg font-medium text-gray-900">Security Settings</h2>
                 <div className="space-y-4">
                   <p className="text-gray-600">Security settings will be available in a future update.</p>
                 </div>
@@ -288,7 +305,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {saving ? (
                     <>
