@@ -37,6 +37,11 @@ const submissionSchema = new Schema<SubmissionDocument>({
     type: String,
     default: '',
   },
+  assignmentType: {
+    type: String,
+    enum: ['Essay', 'Research Paper', 'Report', 'Case Study Response', 'Literature Review', 'Annotated Bibliography', 'Reflective Writing/Journal'],
+    required: false,
+  },
   status: {
     type: String,
     enum: ['draft', 'submitted', 'graded'],

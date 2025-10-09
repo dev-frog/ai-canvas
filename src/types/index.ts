@@ -78,6 +78,7 @@ export interface Submission {
   studentId: string;
   title: string;
   content: string;
+  assignmentType?: 'Essay' | 'Research Paper' | 'Report' | 'Case Study Response' | 'Literature Review' | 'Annotated Bibliography' | 'Reflective Writing/Journal';
   status: 'draft' | 'submitted' | 'graded';
   submittedAt?: Date;
   grade?: number;

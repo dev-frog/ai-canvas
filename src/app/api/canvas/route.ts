@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Only students can create canvas documents' }, { status: 403 });
     }
 
-    const { title, content, assignmentId } = await req.json();
+    const { title, content, assignmentId, assignmentType } = await req.json();
 
     await dbConnect();
 
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       assignmentId: assignmentId || undefined,
       title: title || 'Untitled',
       content: content || '',
+      assignmentType: assignmentType || undefined,
       status: 'draft',
     });
 
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
         _id: submission._id.toString(),
         title: submission.title,
         content: submission.content,
+        assignmentType: submission.assignmentType,
         status: submission.status,
         wordCount: submission.writingStats?.wordCount || 0,
         createdAt: submission.createdAt,
@@ -76,6 +78,7 @@ export async function GET(req: NextRequest) {
           _id: submission._id.toString(),
           title: submission.title,
           content: submission.content,
+          assignmentType: submission.assignmentType,
           status: submission.status,
           wordCount: submission.writingStats?.wordCount || 0,
           assignmentId: submission.assignmentId,
@@ -96,6 +99,7 @@ export async function GET(req: NextRequest) {
           _id: sub._id.toString(),
           title: sub.title,
           content: sub.content,
+          assignmentType: sub.assignmentType,
           status: sub.status,
           wordCount: sub.writingStats?.wordCount || 0,
           assignmentId: sub.assignmentId,
@@ -117,7 +121,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, title, content, status, wordCount, aiTokensUsed } = await req.json();
+    const { id, title, content, assignmentType, status, wordCount, aiTokensUsed } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: 'Submission ID is required' }, { status: 400 });
@@ -139,6 +143,7 @@ export async function PUT(req: NextRequest) {
     // Update submission
     if (title !== undefined) submission.title = title;
     if (content !== undefined) submission.content = content;
+    if (assignmentType !== undefined) submission.assignmentType = assignmentType;
     if (status !== undefined) submission.status = status;
 
     await submission.save();
@@ -149,6 +154,7 @@ export async function PUT(req: NextRequest) {
         _id: submission._id.toString(),
         title: submission.title,
         content: submission.content,
+        assignmentType: submission.assignmentType,
         status: submission.status,
         wordCount: submission.writingStats?.wordCount || 0,
         createdAt: submission.createdAt,

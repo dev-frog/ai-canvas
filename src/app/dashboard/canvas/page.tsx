@@ -69,6 +69,8 @@ export default function CanvasPage() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [aiContinueSuggestion, setAiContinueSuggestion] = useState('');
   const [showAIContinue, setShowAIContinue] = useState(false);
+  const [assignmentType, setAssignmentType] = useState<'Essay' | 'Research Paper' | 'Report' | 'Case Study Response' | 'Literature Review' | 'Annotated Bibliography' | 'Reflective Writing/Journal' | ''>('');
+  const [showTypeModal, setShowTypeModal] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,11 @@ export default function CanvasPage() {
         setUser(currentUser);
         setAiTokensUsed(currentUser.aiTokensUsed || 0);
 
+        // Show type modal for new canvas (no canvasId)
+        if (!canvasId && !assignmentId) {
+          setShowTypeModal(true);
+        }
+
         // Load existing canvas document if ID provided
         if (canvasId && auth.currentUser) {
           const idToken = await auth.currentUser.getIdToken();
@@ -106,6 +113,7 @@ export default function CanvasPage() {
               setSubmissionId(data.submission._id);
               setTitle(data.submission.title || 'Untitled');
               setContent(data.submission.content || '');
+              setAssignmentType(data.submission.assignmentType || '');
               setWordCount(data.submission.wordCount || 0);
               setAiTokensUsed(data.submission.aiUsageStats?.tokensUsed || 0);
               setAiTokenLimit(data.submission.aiUsageStats?.tokenLimit || 1000);
@@ -219,6 +227,7 @@ export default function CanvasPage() {
             id: submissionId,
             title,
             content,
+            assignmentType,
             wordCount,
             aiTokensUsed,
             status: 'draft'
@@ -248,6 +257,7 @@ export default function CanvasPage() {
           body: JSON.stringify({
             title,
             content,
+            assignmentType,
             assignmentId,
           }),
         });
@@ -711,6 +721,20 @@ export default function CanvasPage() {
                     placeholder="Untitled"
                     className="w-full text-4xl font-bold text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent border-none p-0"
                   />
+                  {/* Assignment Type Badge */}
+                  {assignmentType && (
+                    <div className="mt-3 flex items-center">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        {assignmentType}
+                      </span>
+                      <button
+                        onClick={() => setShowTypeModal(true)}
+                        className="ml-2 text-sm text-gray-500 hover:text-gray-700"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Rich Text Editor - Scrollable */}
@@ -977,6 +1001,46 @@ export default function CanvasPage() {
           </div>
         )}
       </div>
+
+      {/* Assignment Type Modal */}
+      {showTypeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Select Assignment Type</h2>
+            <p className="text-gray-600 mb-6">Choose the type of assignment you're working on. This helps optimize AI assistance for your specific needs.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+              {['Essay', 'Research Paper', 'Report', 'Case Study Response', 'Literature Review', 'Annotated Bibliography', 'Reflective Writing/Journal'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setAssignmentType(type as any);
+                    setShowTypeModal(false);
+                  }}
+                  className={`p-4 border-2 rounded-lg text-left transition-all hover:border-blue-500 hover:bg-blue-50 ${
+                    assignmentType === type
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200'
+                  }`}
+                >
+                  <div className="font-medium text-gray-900">{type}</div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              {assignmentType && (
+                <button
+                  onClick={() => setShowTypeModal(false)}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
