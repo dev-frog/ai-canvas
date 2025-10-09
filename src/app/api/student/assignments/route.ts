@@ -14,6 +14,22 @@ async function getStudentAssignments(request: NextRequest, context: any, user: a
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status'); // 'pending', 'draft', 'submitted', 'graded'
 
+    console.log('Getting assignments for user:', {
+      userId: user._id,
+      userClasses: user.classes,
+      limit,
+      statusFilter: status,
+    });
+
+    // Check if user has classes
+    if (!user.classes || user.classes.length === 0) {
+      console.log('User has no classes assigned');
+      return NextResponse.json({
+        success: true,
+        assignments: [],
+      });
+    }
+
     // Get assignments from user's classes
     const assignments = await Assignment.find({
       classId: { $in: user.classes },
@@ -22,6 +38,8 @@ async function getStudentAssignments(request: NextRequest, context: any, user: a
       .populate('classId', 'name')
       .sort({ dueDate: 1 })
       .lean();
+
+    console.log(`Found ${assignments.length} assignments for user's classes`);
 
     const assignmentIds = assignments.map((a: any) => a._id);
 
@@ -82,6 +100,8 @@ async function getStudentAssignments(request: NextRequest, context: any, user: a
     // Limit results
     combinedData = combinedData.slice(0, limit);
 
+    console.log(`Returning ${combinedData.length} assignments after filtering and limiting`);
+
     return NextResponse.json({
       success: true,
       assignments: combinedData,
@@ -89,7 +109,7 @@ async function getStudentAssignments(request: NextRequest, context: any, user: a
   } catch (error) {
     console.error('Get student assignments error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch student assignments' },
+      { success: false, error: 'Failed to fetch student assignments' },
       { status: 500 }
     );
   }

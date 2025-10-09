@@ -28,6 +28,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ user, onMenuClick }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -69,42 +70,59 @@ const Header: React.FC<HeaderProps> = ({ user, onMenuClick }) => {
                 <BellIcon className="h-6 w-6" />
               </button>
 
-              <div className="relative group">
-                <button className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  onMouseEnter={() => setUserMenuOpen(true)}
+                  className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 p-1 hover:bg-gray-100 transition-colors"
+                >
                   <UserIcon className="h-8 w-8 text-gray-400" />
                 </button>
 
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 invisible group-hover:visible">
-                  <div className="px-4 py-2 border-b">
-                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
-                    <p className="text-xs text-gray-400 capitalize">{user.role}</p>
-                  </div>
+                {userMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <div
+                      className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200"
+                      onMouseLeave={() => setUserMenuOpen(false)}
+                    >
+                      <div className="px-4 py-2 border-b">
+                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-xs text-gray-400 capitalize">{user.role}</p>
+                      </div>
 
-                  <Link
-                    href="/dashboard/settings"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <UserIcon className="h-4 w-4 mr-2" />
-                    Settings
-                  </Link>
+                      <Link
+                        href="/dashboard/settings"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <UserIcon className="h-4 w-4 mr-2" />
+                        Settings
+                      </Link>
 
-                  <Link
-                    href="/dashboard/subscription"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <Cog6ToothIcon className="h-4 w-4 mr-2" />
-                    Subscription
-                  </Link>
+                      <Link
+                        href="/dashboard/subscription"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Cog6ToothIcon className="h-4 w-4 mr-2" />
+                        Subscription
+                      </Link>
 
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
-                    Sign out
-                  </button>
-                </div>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
+                        Sign out
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

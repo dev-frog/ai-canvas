@@ -22,7 +22,15 @@ export default function StudentDashboard() {
     completedAssignments: 0,
     draftSubmissions: 0,
     aiTokensUsed: 0,
-    aiTokensLimit: 1000
+    aiTokensLimit: 1000,
+    tokenMetrics: {
+      tokensToday: 0,
+      tokensThisWeek: 0,
+      tokensThisMonth: 0,
+      avgTokensPerSubmission: 0,
+      totalInteractions: 0,
+      tokensByType: {} as Record<string, number>,
+    }
   });
   const [loading, setLoading] = useState(true);
   const [recentAssignments, setRecentAssignments] = useState<any[]>([]);
@@ -230,22 +238,62 @@ export default function StudentDashboard() {
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">AI Assistant Usage</h3>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-600">Tokens Used</span>
+          <span className="text-sm text-gray-600">Total Tokens Used</span>
           <span className="text-sm font-medium text-gray-900">
             {user?.aiTokensUsed || 0} / {user?.aiTokensLimit || 1000}
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
           <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${Math.min(aiUsagePercentage, 100)}%` }}
           ></div>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
+
+        {/* Token Metrics Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-blue-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Today</p>
+            <p className="text-lg font-semibold text-gray-900">{stats.tokenMetrics.tokensToday}</p>
+          </div>
+          <div className="bg-green-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">This Week</p>
+            <p className="text-lg font-semibold text-gray-900">{stats.tokenMetrics.tokensThisWeek}</p>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">This Month</p>
+            <p className="text-lg font-semibold text-gray-900">{stats.tokenMetrics.tokensThisMonth}</p>
+          </div>
+          <div className="bg-orange-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Avg/Submission</p>
+            <p className="text-lg font-semibold text-gray-900">{stats.tokenMetrics.avgTokensPerSubmission}</p>
+          </div>
+        </div>
+
+        {/* Usage by Type */}
+        {Object.keys(stats.tokenMetrics.tokensByType).length > 0 && (
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Usage by Type</p>
+            <div className="space-y-2">
+              {Object.entries(stats.tokenMetrics.tokensByType).map(([type, tokens]) => (
+                <div key={type} className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600 capitalize">{type}</span>
+                  <span className="text-xs font-medium text-gray-900">{tokens}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-500 mt-4">
           {aiUsagePercentage >= 90 ?
             'You\'re approaching your monthly limit. Consider upgrading your plan.' :
             'You have plenty of AI assistance available this month.'
           }
+        </p>
+
+        <p className="text-xs text-gray-400 mt-2">
+          Total AI Interactions: {stats.tokenMetrics.totalInteractions}
         </p>
       </div>
 
