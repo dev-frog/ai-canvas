@@ -979,117 +979,117 @@ export default function CanvasPage() {
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <DocumentTextIcon className="h-8 w-8 text-blue-600" />
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">
-                {assignment?.title || 'New Assignment'}
+      <div className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          {/* Left Section */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <DocumentTextIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 truncate">
+                {assignment?.title || title || 'Untitled'}
               </h1>
               {assignment && (
-                <p className="text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                   Due: {new Date(assignment.dueDate).toLocaleDateString()}
                 </p>
               )}
             </div>
 
-            {/* New Assignment Button */}
+            {/* New Assignment Icon Button */}
             <button
               onClick={() => {
-                // Navigate to clean canvas URL - this will trigger a full reload
                 window.location.href = '/dashboard/canvas';
               }}
-              className="ml-4 flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              title="Start a new assignment"
+              className="flex items-center justify-center p-1.5 sm:p-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors flex-shrink-0"
+              title="Create new assignment"
             >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              New
+              <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
 
-          <div className="flex items-center space-x-4">
+          {/* Right Section */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* Word Count */}
-            <div className="text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">
               <span className="font-medium">{wordCount}</span>
               {assignment?.maxWords && (
                 <span>/{assignment.maxWords}</span>
-              )} words
+              )} <span className="hidden sm:inline">words</span><span className="sm:hidden">w</span>
             </div>
 
-            {/* AI Tokens */}
-            <div className="text-sm text-gray-500">
-              <BoltIcon className="h-4 w-4 inline mr-1" />
-              {aiTokensUsed}/{user?.aiTokensLimit || 1000} tokens
+            {/* AI Tokens - Hidden on mobile */}
+            <div className="hidden md:flex text-xs sm:text-sm text-gray-500 whitespace-nowrap">
+              <BoltIcon className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1" />
+              {aiTokensUsed}/{user?.aiTokensLimit || 1000}
             </div>
 
             {/* Save Status */}
             <button
               onClick={saveContent}
               disabled={saving}
-              className="flex items-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              className="hidden sm:flex items-center text-xs sm:text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 whitespace-nowrap"
               title="Click to save now"
             >
               {saving ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                  Saving...
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-blue-600 mr-1 sm:mr-2"></div>
+                  <span className="hidden lg:inline">Saving...</span>
                 </>
               ) : lastSaved ? (
                 <>
-                  <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
-                  Saved {lastSaved.toLocaleTimeString()}
+                  <CheckCircleIcon className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mr-1 sm:mr-2" />
+                  <span className="hidden lg:inline">Saved</span>
                 </>
               ) : (
                 <>
-                  <CloudArrowUpIcon className="h-4 w-4 mr-2" />
-                  Click to save
+                  <CloudArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden lg:inline">Save</span>
                 </>
               )}
             </button>
 
             {/* Action Buttons */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={handleAIContinue}
                 disabled={isProcessingAI || !content}
-                className="flex items-center px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md text-sm font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                className="flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-md text-xs sm:text-sm font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 title="Continue writing with AI"
               >
-                <SparklesIcon className="h-4 w-4 mr-2" />
-                {isProcessingAI ? 'Generating...' : 'Continue Writing'}
+                <SparklesIcon className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{isProcessingAI ? 'Generating...' : 'Continue'}</span>
               </button>
 
               <button
                 onClick={() => setShowPreview(!showPreview)}
-                className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="hidden sm:flex items-center px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
-                <EyeIcon className="h-4 w-4 mr-2" />
-                Preview
+                <EyeIcon className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden lg:inline">Preview</span>
               </button>
 
               <button
                 onClick={() => setShowAIChat(!showAIChat)}
-                className={`flex items-center px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
+                className={`hidden lg:flex items-center px-2 sm:px-3 py-1.5 sm:py-2 border rounded-md text-xs sm:text-sm font-medium transition-colors ${
                   showAIChat
                     ? 'bg-purple-100 border-purple-300 text-purple-700'
                     : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                 }`}
               >
-                <SparklesIcon className="h-4 w-4 mr-2" />
-                AI Chat
+                <SparklesIcon className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden lg:inline">AI Chat</span>
               </button>
 
               <button
                 onClick={() => setShowAIPanel(!showAIPanel)}
-                className={`flex items-center px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
+                className={`hidden md:flex items-center px-2 sm:px-3 py-1.5 sm:py-2 border rounded-md text-xs sm:text-sm font-medium transition-colors ${
                   showAIPanel
                     ? 'bg-blue-100 border-blue-300 text-blue-700'
                     : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                 }`}
               >
-                <Cog6ToothIcon className="h-4 w-4 mr-2" />
-                Tools
+                <Cog6ToothIcon className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden lg:inline">Tools</span>
               </button>
             </div>
           </div>
