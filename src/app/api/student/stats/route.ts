@@ -23,7 +23,7 @@ async function getStudentStats(request: NextRequest, context: any, user: any) {
 
     // Get all submissions for this student (both with and without assignments)
     const allSubmissions = await Submission.find({
-      studentId: user._id,
+      studentId: user.firebaseUid,
     });
 
     // Filter submissions related to class assignments
@@ -59,7 +59,7 @@ async function getStudentStats(request: NextRequest, context: any, user: any) {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Get AI interactions for token metrics
-    const allInteractions = await AIInteraction.find({ userId: user._id });
+    const allInteractions = await AIInteraction.find({ userId: user.firebaseUid });
 
     const tokensToday = allInteractions
       .filter((i: any) => new Date(i.timestamp) >= todayStart)
@@ -107,7 +107,7 @@ async function getStudentStats(request: NextRequest, context: any, user: any) {
     };
 
     console.log('Student Stats Calculation:', {
-      userId: user._id,
+      userId: user.firebaseUid,
       userClasses: user.classes,
       totalAssignments,
       totalSubmissions: allSubmissions.length,

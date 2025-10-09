@@ -80,27 +80,39 @@ export default function StudentDashboard() {
         console.error('Failed to load stats - Exception:', error);
       }
 
-      // Load assignments
+      // Load recent submissions (canvas work)
       try {
-        console.log('Fetching assignments with token...');
-        const assignmentsResponse = await fetch('/api/student/assignments?limit=5', {
+        console.log('Fetching recent submissions with token...');
+        const submissionsResponse = await fetch('/api/canvas', {
           headers: {
             'Authorization': `Bearer ${idToken}`,
           },
         });
 
-        console.log('Assignments response status:', assignmentsResponse.status);
-        const assignmentsData = await assignmentsResponse.json();
-        console.log('Assignments data received:', assignmentsData);
+        console.log('Submissions response status:', submissionsResponse.status);
+        const submissionsData = await submissionsResponse.json();
+        console.log('Submissions data received:', submissionsData);
 
-        if (assignmentsData.success && assignmentsData.assignments) {
-          console.log('Setting assignments:', assignmentsData.assignments);
-          setRecentAssignments(assignmentsData.assignments);
+        if (submissionsData.success && submissionsData.submissions) {
+          // Transform submissions to assignment format and take only the 5 most recent
+          const recentSubmissions = submissionsData.submissions.slice(0, 5).map((sub: any) => ({
+            id: sub._id,
+            title: sub.title || 'Untitled',
+            course: 'Personal Work',
+            dueDate: sub.updatedAt,
+            status: sub.status,
+            progress: sub.wordCount > 0 ? Math.min(100, Math.floor((sub.wordCount / 1000) * 100)) : 0,
+            submission: {
+              _id: sub._id,
+            }
+          }));
+          console.log('Setting recent submissions:', recentSubmissions);
+          setRecentAssignments(recentSubmissions);
         } else {
-          console.error('Failed to load assignments:', assignmentsData.error || assignmentsData);
+          console.error('Failed to load submissions:', submissionsData.error || submissionsData);
         }
       } catch (error) {
-        console.error('Failed to load assignments - Exception:', error);
+        console.error('Failed to load submissions - Exception:', error);
       }
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -297,18 +309,18 @@ export default function StudentDashboard() {
         </p>
       </div>
 
-      {/* Recent Assignments */}
+      {/* Recent Work */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Recent Assignments</h3>
+          <h3 className="text-lg font-medium text-gray-900">Recent Work</h3>
         </div>
         {loading ? (
           <div className="px-6 py-8 text-center">
-            <p className="text-gray-500">Loading assignments...</p>
+            <p className="text-gray-500">Loading recent work...</p>
           </div>
         ) : recentAssignments.length === 0 ? (
           <div className="px-6 py-8 text-center">
-            <p className="text-gray-500">No assignments found</p>
+            <p className="text-gray-500">No recent work found. Start a new assignment to get started!</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">

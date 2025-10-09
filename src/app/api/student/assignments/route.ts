@@ -15,7 +15,7 @@ async function getStudentAssignments(request: NextRequest, context: any, user: a
     const status = searchParams.get('status'); // 'pending', 'draft', 'submitted', 'graded'
 
     console.log('Getting assignments for user:', {
-      userId: user._id,
+      userId: user.firebaseUid,
       userClasses: user.classes,
       limit,
       statusFilter: status,
@@ -45,7 +45,7 @@ async function getStudentAssignments(request: NextRequest, context: any, user: a
 
     // Get all submissions for this student
     const submissions = await Submission.find({
-      studentId: user._id,
+      studentId: user.firebaseUid,
       assignmentId: { $in: assignmentIds },
     }).lean();
 
