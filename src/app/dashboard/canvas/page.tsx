@@ -71,6 +71,7 @@ export default function CanvasPage() {
   const [showAIContinue, setShowAIContinue] = useState(false);
   const [assignmentType, setAssignmentType] = useState<'Essay' | 'Research Paper' | 'Report' | 'Case Study Response' | 'Literature Review' | 'Annotated Bibliography' | 'Reflective Writing/Journal' | ''>('');
   const [showTypeModal, setShowTypeModal] = useState(false);
+  const [previewType, setPreviewType] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -482,6 +483,436 @@ export default function CanvasPage() {
 
   const insertFromChat = (text: string) => {
     setContent(prev => prev + '\n\n' + text);
+  };
+
+  const getTemplatePreview = (type: string): string => {
+    const previews: Record<string, string> = {
+      'Essay': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Introduction</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Hook, background, thesis statement...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Body Paragraph 1</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Topic sentence, evidence, analysis...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Body Paragraph 2</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Topic sentence, evidence, analysis...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Conclusion</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Summary and closing thoughts...</p>
+      </div>`,
+
+      'Research Paper': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Title Page</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Title, Author, Institution...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Abstract</h3>
+        <p style="color: #6B7280; margin: 4px 0;">150-250 word summary...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Introduction</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Background, research question...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Literature Review</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Existing research synthesis...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Methodology</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Research design and methods...</p>
+      </div>`,
+
+      'Report': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Executive Summary</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Key findings overview...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Introduction</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Purpose and scope...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Findings</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Key discoveries and data...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Recommendations</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Actionable suggestions...</p>
+      </div>`,
+
+      'Case Study Response': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Case Overview</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Situation summary...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Problem Identification</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Main issues analysis...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Alternative Solutions</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Multiple options with pros/cons...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Recommended Solution</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Best approach with justification...</p>
+      </div>`,
+
+      'Literature Review': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Introduction</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Topic and scope...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Theme 1</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Key studies and synthesis...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Theme 2</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Key studies and synthesis...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Critical Analysis</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Trends and debates...</p>
+      </div>`,
+
+      'Annotated Bibliography': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Source 1</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Citation, Summary, Evaluation...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Source 2</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Citation, Summary, Evaluation...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Source 3</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Citation, Summary, Evaluation...</p>
+
+        <p style="color: #6B7280; margin: 8px 0; font-style: italic;">Continue for all sources...</p>
+      </div>`,
+
+      'Reflective Writing/Journal': `<div style="font-size: 12px; line-height: 1.4;">
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Experience Description</h3>
+        <p style="color: #6B7280; margin: 4px 0;">What happened...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Initial Thoughts</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Immediate reactions...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Analysis</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Deeper interpretation...</p>
+
+        <h3 style="font-size: 14px; font-weight: 600; margin: 8px 0;">Learning & Application</h3>
+        <p style="color: #6B7280; margin: 4px 0;">Key insights and future actions...</p>
+      </div>`
+    };
+
+    return previews[type] || '';
+  };
+
+  const getTemplateForType = (type: string): string => {
+    const templates: Record<string, string> = {
+      'Essay': `<h2>Introduction</h2>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Start with an attention-grabbing hook... Provide context and background... State your thesis...</p>
+
+<h2>Body Paragraph 1</h2>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Topic sentence introducing your first main point...</p>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Supporting evidence and analysis...</p>
+
+<h2>Body Paragraph 2</h2>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Topic sentence introducing your second main point...</p>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Supporting evidence and analysis...</p>
+
+<h2>Body Paragraph 3</h2>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Topic sentence introducing your third main point...</p>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Supporting evidence and analysis...</p>
+
+<h2>Conclusion</h2>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">Restate thesis and summarize main points... Leave reader with final thoughts...</p>
+
+<h2>References</h2>
+<p contenteditable="true" class="placeholder-text" style="color: #9CA3AF; font-style: italic;">List your sources in proper citation format...</p>`,
+
+      'Research Paper': `<h1>Title Page</h1>
+<p><strong>Title:</strong> [Your Research Paper Title]</p>
+<p><strong>Author:</strong> [Your Name]</p>
+<p><strong>Institution:</strong> [Your Institution]</p>
+<p><strong>Date:</strong> [Date]</p>
+
+<h2>Abstract</h2>
+<p>A brief summary (150-250 words) of your research paper including: research question, methodology, key findings, and conclusions.</p>
+
+<h2>Introduction</h2>
+<p><strong>Background:</strong> Provide context for your research topic.</p>
+<p><strong>Research Question/Hypothesis:</strong> Clearly state what you're investigating.</p>
+<p><strong>Significance:</strong> Explain why this research matters.</p>
+<p><strong>Scope:</strong> Define the boundaries of your research.</p>
+
+<h2>Literature Review</h2>
+<p>Summarize and synthesize existing research on your topic. Identify gaps in current knowledge that your research addresses. Organize by themes, methodologies, or chronologically.</p>
+
+<h2>Methodology</h2>
+<p><strong>Research Design:</strong> Describe your approach (qualitative, quantitative, mixed-methods).</p>
+<p><strong>Data Collection:</strong> Explain how you gathered information.</p>
+<p><strong>Analysis Methods:</strong> Detail how you analyzed your data.</p>
+<p><strong>Limitations:</strong> Acknowledge potential weaknesses in your methodology.</p>
+
+<h2>Results/Findings</h2>
+<p>Present your findings objectively. Use tables, charts, or graphs where appropriate. Organize findings logically, often corresponding to your research questions.</p>
+
+<h2>Discussion</h2>
+<p>Interpret your results. Explain what your findings mean. Compare with existing literature. Discuss implications and applications. Address unexpected results.</p>
+
+<h2>Conclusion</h2>
+<p>Summarize key findings. Restate the significance of your research. Suggest directions for future research.</p>
+
+<h2>References</h2>
+<p>[List all sources cited in your paper using appropriate citation format]</p>`,
+
+      'Report': `<h1>Executive Summary</h1>
+<p>A brief overview of the entire report (1-2 paragraphs). Include: purpose, key findings, main conclusions, and primary recommendations.</p>
+
+<h2>Table of Contents</h2>
+<p>1. Introduction<br>
+2. Background<br>
+3. Methodology<br>
+4. Findings<br>
+5. Analysis<br>
+6. Recommendations<br>
+7. Conclusion<br>
+8. Appendices</p>
+
+<h2>1. Introduction</h2>
+<p><strong>Purpose:</strong> State the objective of this report.</p>
+<p><strong>Scope:</strong> Define what is and isn't covered.</p>
+<p><strong>Audience:</strong> Identify the intended readers.</p>
+
+<h2>2. Background</h2>
+<p>Provide context and relevant background information. Include historical information if relevant. Define key terms and concepts.</p>
+
+<h2>3. Methodology</h2>
+<p>Describe how information was gathered. Explain any analytical frameworks used. Discuss data sources and their reliability.</p>
+
+<h2>4. Findings</h2>
+<p><strong>Finding 1:</strong> [Present first key finding with supporting data]</p>
+<p><strong>Finding 2:</strong> [Present second key finding with supporting data]</p>
+<p><strong>Finding 3:</strong> [Present third key finding with supporting data]</p>
+
+<h2>5. Analysis</h2>
+<p>Interpret the findings. Identify patterns and trends. Discuss implications. Compare with benchmarks or standards if applicable.</p>
+
+<h2>6. Recommendations</h2>
+<p><strong>Recommendation 1:</strong> [Specific action with justification]</p>
+<p><strong>Recommendation 2:</strong> [Specific action with justification]</p>
+<p><strong>Recommendation 3:</strong> [Specific action with justification]</p>
+
+<h2>7. Conclusion</h2>
+<p>Summarize main points. Reinforce key recommendations. Provide closing remarks.</p>
+
+<h2>8. References</h2>
+<p>[List all sources]</p>
+
+<h2>9. Appendices</h2>
+<p>[Include supporting documents, raw data, detailed charts, or supplementary information]</p>`,
+
+      'Case Study Response': `<h2>Case Overview</h2>
+<p><strong>Case Title:</strong> [Name of the case]</p>
+<p><strong>Key Issue:</strong> Briefly state the main problem or situation.</p>
+<p><strong>Stakeholders:</strong> List the main people or groups involved.</p>
+
+<h2>Situation Analysis</h2>
+<p><strong>Context:</strong> Describe the background and circumstances of the case.</p>
+<p><strong>Key Facts:</strong> List the most important information from the case.</p>
+<ul>
+  <li>Fact 1</li>
+  <li>Fact 2</li>
+  <li>Fact 3</li>
+</ul>
+
+<h2>Problem Identification</h2>
+<p><strong>Primary Problem:</strong> State the main issue that needs to be addressed.</p>
+<p><strong>Secondary Issues:</strong> Identify related problems or contributing factors.</p>
+<p><strong>Root Causes:</strong> Analyze underlying reasons for the problems.</p>
+
+<h2>Alternative Solutions</h2>
+<p><strong>Option 1:</strong> [Describe first potential solution]</p>
+<p><em>Pros:</em> [List advantages]</p>
+<p><em>Cons:</em> [List disadvantages]</p>
+
+<p><strong>Option 2:</strong> [Describe second potential solution]</p>
+<p><em>Pros:</em> [List advantages]</p>
+<p><em>Cons:</em> [List disadvantages]</p>
+
+<p><strong>Option 3:</strong> [Describe third potential solution]</p>
+<p><em>Pros:</em> [List advantages]</p>
+<p><em>Cons:</em> [List disadvantages]</p>
+
+<h2>Recommended Solution</h2>
+<p><strong>Selected Approach:</strong> State which option you recommend and why.</p>
+<p><strong>Justification:</strong> Explain why this is the best solution based on analysis.</p>
+<p><strong>Expected Outcomes:</strong> Describe anticipated results.</p>
+
+<h2>Implementation Plan</h2>
+<p><strong>Action Steps:</strong></p>
+<ol>
+  <li>First action with timeline</li>
+  <li>Second action with timeline</li>
+  <li>Third action with timeline</li>
+</ol>
+<p><strong>Resources Needed:</strong> List required resources (time, money, personnel, etc.)</p>
+<p><strong>Potential Challenges:</strong> Identify possible obstacles and mitigation strategies.</p>
+
+<h2>Conclusion</h2>
+<p>Summarize your analysis and recommendation. Reflect on lessons learned from the case.</p>
+
+<h2>References</h2>
+<p>[Cite any external sources used in your analysis]</p>`,
+
+      'Literature Review': `<h2>Introduction</h2>
+<p><strong>Topic Overview:</strong> Introduce your research topic and its significance.</p>
+<p><strong>Purpose:</strong> Explain the purpose of this literature review.</p>
+<p><strong>Scope:</strong> Define what literature is included and excluded.</p>
+<p><strong>Organization:</strong> Briefly describe how the review is structured.</p>
+
+<h2>Search Methodology</h2>
+<p><strong>Databases Used:</strong> List the academic databases searched.</p>
+<p><strong>Keywords:</strong> Specify search terms used.</p>
+<p><strong>Selection Criteria:</strong> Explain inclusion/exclusion criteria.</p>
+<p><strong>Time Period:</strong> State the date range of literature reviewed.</p>
+
+<h2>Theme 1: [First Major Theme]</h2>
+<p><strong>Overview:</strong> Introduce this theme or area of research.</p>
+<p><strong>Key Studies:</strong></p>
+<p>Author (Year) found that... [Summarize finding and its significance]</p>
+<p>Author (Year) demonstrated... [Summarize finding]</p>
+<p>Author (Year) argued... [Summarize argument]</p>
+<p><strong>Synthesis:</strong> Discuss patterns, agreements, and disagreements among studies.</p>
+<p><strong>Gaps:</strong> Identify what's missing or needs further research.</p>
+
+<h2>Theme 2: [Second Major Theme]</h2>
+<p><strong>Overview:</strong> Introduce this theme or area of research.</p>
+<p><strong>Key Studies:</strong></p>
+<p>Author (Year) explored... [Summarize contribution]</p>
+<p>Author (Year) challenged... [Summarize perspective]</p>
+<p>Author (Year) expanded... [Summarize development]</p>
+<p><strong>Synthesis:</strong> Discuss connections and contradictions.</p>
+<p><strong>Gaps:</strong> Identify research opportunities.</p>
+
+<h2>Theme 3: [Third Major Theme]</h2>
+<p><strong>Overview:</strong> Introduce this theme or area of research.</p>
+<p><strong>Key Studies:</strong></p>
+<p>[Continue pattern from above themes]</p>
+<p><strong>Synthesis:</strong> Analyze relationships between studies.</p>
+<p><strong>Gaps:</strong> Note areas needing investigation.</p>
+
+<h2>Critical Analysis</h2>
+<p><strong>Methodological Trends:</strong> Discuss common research approaches in the field.</p>
+<p><strong>Theoretical Frameworks:</strong> Analyze dominant theories and perspectives.</p>
+<p><strong>Evolution of Thought:</strong> Describe how understanding has developed over time.</p>
+<p><strong>Controversies and Debates:</strong> Highlight ongoing disagreements or discussions.</p>
+
+<h2>Research Gaps and Future Directions</h2>
+<p>Identify significant gaps in current literature. Suggest areas for future research. Explain the importance of addressing these gaps.</p>
+
+<h2>Conclusion</h2>
+<p>Summarize main findings from the literature. Restate key themes and patterns. Emphasize the contribution of this review. Suggest implications for practice or policy.</p>
+
+<h2>References</h2>
+<p>[Comprehensive list of all sources cited, formatted according to required citation style]</p>`,
+
+      'Annotated Bibliography': `<h1>Annotated Bibliography</h1>
+<p><strong>Topic:</strong> [Your Research Topic]</p>
+<p><strong>Purpose:</strong> [Brief explanation of why you're compiling these sources]</p>
+
+<hr>
+
+<h3>Source 1</h3>
+<p><strong>Citation:</strong> Author, A. A. (Year). Title of work. <em>Journal Name</em>, volume(issue), pages. DOI or URL</p>
+
+<p><strong>Summary:</strong> Briefly describe the main points, arguments, or findings of this source (3-4 sentences). What is the author's thesis? What evidence do they provide?</p>
+
+<p><strong>Evaluation:</strong> Assess the source's credibility, reliability, and quality (2-3 sentences). Consider the author's credentials, publication venue, methodology, and bias.</p>
+
+<p><strong>Relevance:</strong> Explain how this source relates to your research topic (2-3 sentences). How does it support your thesis or help answer your research question?</p>
+
+<hr>
+
+<h3>Source 2</h3>
+<p><strong>Citation:</strong> Author, B. B., & Author, C. C. (Year). Title of work. <em>Journal Name</em>, volume(issue), pages. DOI or URL</p>
+
+<p><strong>Summary:</strong> [Summarize the main content of the source. What are the key points or findings?]</p>
+
+<p><strong>Evaluation:</strong> [Assess the quality and credibility. Is this a scholarly source? What are its strengths and weaknesses?]</p>
+
+<p><strong>Relevance:</strong> [Explain how this source contributes to your research. How does it compare to other sources?]</p>
+
+<hr>
+
+<h3>Source 3</h3>
+<p><strong>Citation:</strong> Author, D. D. (Year). <em>Title of book</em>. Publisher.</p>
+
+<p><strong>Summary:</strong> [Describe the main arguments and content of the book or book chapter.]</p>
+
+<p><strong>Evaluation:</strong> [Critique the work. Is the argument well-supported? Are there any limitations?]</p>
+
+<p><strong>Relevance:</strong> [Discuss how this source fits into your research. Does it support, contradict, or complement other sources?]</p>
+
+<hr>
+
+<h3>Source 4</h3>
+<p><strong>Citation:</strong> [Follow appropriate citation format for your source type]</p>
+
+<p><strong>Summary:</strong> [Main points and findings]</p>
+
+<p><strong>Evaluation:</strong> [Quality assessment]</p>
+
+<p><strong>Relevance:</strong> [Connection to research topic]</p>
+
+<hr>
+
+<h3>Source 5</h3>
+<p><strong>Citation:</strong> [Follow appropriate citation format]</p>
+
+<p><strong>Summary:</strong> [Key content]</p>
+
+<p><strong>Evaluation:</strong> [Credibility analysis]</p>
+
+<p><strong>Relevance:</strong> [Research significance]</p>
+
+<hr>
+
+<p><em>Note: Continue adding sources following the same format. Organize sources alphabetically, chronologically, or thematically depending on your assignment requirements.</em></p>`,
+
+      'Reflective Writing/Journal': `<h2>Entry Date: [Today's Date]</h2>
+
+<h3>Experience/Event Description</h3>
+<p><strong>What happened?</strong> Describe the experience, event, or learning situation you're reflecting on. Include relevant details about when, where, and what occurred. Set the context for your reflection.</p>
+
+<h3>Initial Thoughts and Feelings</h3>
+<p><strong>What was your immediate reaction?</strong> Describe your initial emotional and intellectual responses. How did you feel during and immediately after the experience? What stood out to you?</p>
+
+<h3>Analysis and Interpretation</h3>
+<p><strong>Why did this happen?</strong> Analyze the experience more deeply. What factors contributed to the situation? What patterns or connections do you notice? How does this relate to theories or concepts you've learned?</p>
+
+<p><strong>Different Perspectives:</strong> Consider alternative viewpoints. How might others have experienced this situation? What assumptions were you making?</p>
+
+<h3>Personal Learning and Insights</h3>
+<p><strong>What did you learn?</strong> Identify key takeaways from this experience. What new understanding have you gained? How has your perspective changed? What surprised you?</p>
+
+<p><strong>Connections to Previous Knowledge:</strong> How does this experience connect to what you already knew? Does it confirm, challenge, or extend your existing understanding?</p>
+
+<h3>Challenges and Growth</h3>
+<p><strong>What was difficult?</strong> Discuss any challenges or discomfort you experienced. What made these aspects difficult? How did you respond to these challenges?</p>
+
+<p><strong>Growth Areas:</strong> What skills or knowledge do you need to develop? What limitations or biases did you discover in yourself?</p>
+
+<h3>Application and Future Action</h3>
+<p><strong>How will you apply this learning?</strong> Describe specific ways you'll use these insights in the future. What will you do differently? What goals will you set?</p>
+
+<p><strong>Action Steps:</strong></p>
+<ul>
+  <li>Specific action 1</li>
+  <li>Specific action 2</li>
+  <li>Specific action 3</li>
+</ul>
+
+<h3>Conclusion</h3>
+<p><strong>Summary:</strong> Briefly recap your main insights and their significance. What is the most important thing you're taking away from this reflection?</p>
+
+<p><strong>Questions for Further Exploration:</strong></p>
+<ul>
+  <li>Question 1</li>
+  <li>Question 2</li>
+  <li>Question 3</li>
+</ul>
+
+<hr>
+
+<p><em>Reflection Tips: Be honest and specific. Use "I" statements. Focus on what you learned, not just what happened. Consider both successes and challenges. Think critically about your assumptions and biases.</em></p>`
+    };
+
+    return templates[type] || '';
   };
 
   const handleAutocompleteRequest = async (currentText: string): Promise<string> => {
@@ -1004,39 +1435,92 @@ export default function CanvasPage() {
 
       {/* Assignment Type Modal */}
       {showTypeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Select Assignment Type</h2>
-            <p className="text-gray-600 mb-6">Choose the type of assignment you're working on. This helps optimize AI assistance for your specific needs.</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-              {['Essay', 'Research Paper', 'Report', 'Case Study Response', 'Literature Review', 'Annotated Bibliography', 'Reflective Writing/Journal'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    setAssignmentType(type as any);
-                    setShowTypeModal(false);
-                  }}
-                  className={`p-4 border-2 rounded-lg text-left transition-all hover:border-blue-500 hover:bg-blue-50 ${
-                    assignmentType === type
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200'
-                  }`}
-                >
-                  <div className="font-medium text-gray-900">{type}</div>
-                </button>
-              ))}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full my-8 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Assignment Type</h2>
+              <p className="text-gray-600">Choose a template to start with a professional structure.</p>
             </div>
 
-            <div className="flex justify-end space-x-3">
-              {assignmentType && (
-                <button
-                  onClick={() => setShowTypeModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              )}
+            {/* Content */}
+            <div className="flex flex-1 overflow-hidden">
+              {/* Template List */}
+              <div className="w-1/2 border-r border-gray-200 overflow-y-auto p-6">
+                <div className="space-y-3">
+                  {[
+                    { name: 'Essay', desc: 'Structured argument with introduction, body paragraphs, and conclusion' },
+                    { name: 'Research Paper', desc: 'In-depth academic research with literature review and methodology' },
+                    { name: 'Report', desc: 'Professional document with executive summary and recommendations' },
+                    { name: 'Case Study Response', desc: 'Analysis of a specific situation with problem-solving approach' },
+                    { name: 'Literature Review', desc: 'Comprehensive survey and synthesis of existing research' },
+                    { name: 'Annotated Bibliography', desc: 'List of sources with summaries and evaluations' },
+                    { name: 'Reflective Writing/Journal', desc: 'Personal reflection on experiences and learning' }
+                  ].map((type) => (
+                    <button
+                      key={type.name}
+                      onMouseEnter={() => setPreviewType(type.name)}
+                      onClick={() => {
+                        setAssignmentType(type.name as any);
+                        // Apply template if content is empty or default
+                        if (!content || content.trim() === '') {
+                          const template = getTemplateForType(type.name);
+                          setContent(template);
+                        }
+                        setShowTypeModal(false);
+                        setPreviewType(null);
+                      }}
+                      className={`w-full p-4 border-2 rounded-lg text-left transition-all hover:border-blue-500 hover:bg-blue-50 ${
+                        previewType === type.name || assignmentType === type.name
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 mb-1">{type.name}</div>
+                      <div className="text-sm text-gray-600">{type.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview Panel */}
+              <div className="w-1/2 overflow-y-auto p-6 bg-gray-50">
+                {previewType ? (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Template Preview</h3>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                      <div dangerouslySetInnerHTML={{ __html: getTemplatePreview(previewType) }} />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-4 italic">
+                      Hover over different templates to see their structure. Click to select.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-center">
+                    <div>
+                      <div className="text-gray-400 mb-2">
+                        <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500">Hover over a template to preview its structure</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowTypeModal(false);
+                  setPreviewType(null);
+                }}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                {assignmentType ? 'Cancel' : 'Skip for now'}
+              </button>
             </div>
           </div>
         </div>
