@@ -77,7 +77,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, isOpen, onClose }) => {
             </div>
             <nav className="mt-5 px-2 space-y-1">
               {filteredNavigation.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === '/dashboard'
+                  ? pathname === '/dashboard' || pathname === '/dashboard/student' || pathname === '/dashboard/teacher'
+                  : pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <Link
                     key={item.name}
@@ -112,7 +114,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user, isOpen, onClose }) => {
             </div>
             <nav className="mt-5 flex-1 px-2 space-y-1">
               {filteredNavigation.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === '/dashboard'
+                  ? pathname === '/dashboard' || pathname === '/dashboard/student' || pathname === '/dashboard/teacher'
+                  : pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <Link
                     key={item.name}
