@@ -173,6 +173,7 @@ export interface AuthContextType {
   register: (email: string, password: string, name: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 export interface AIContextType {

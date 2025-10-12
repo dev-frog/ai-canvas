@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChange, loginWithEmailAndPassword, registerWithEmailAndPassword, logout as firebaseLogout, getCurrentUser, updateUserProfile } from '@/lib/auth';
+import { onAuthStateChange, loginWithEmailAndPassword, registerWithEmailAndPassword, logout as firebaseLogout, getCurrentUser, updateUserProfile, resetPassword as firebaseResetPassword } from '@/lib/auth';
 import { User, AuthContextType } from '@/types';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -80,6 +80,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await firebaseResetPassword(email);
+    } catch (error) {
+      console.error('Reset password error:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -87,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     updateProfile,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

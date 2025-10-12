@@ -2,6 +2,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   User as FirebaseUser,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -134,6 +135,15 @@ export const updateUserProfile = async (userData: Partial<User>): Promise<User> 
     return data.user;
   } catch (error) {
     console.error('Update profile error:', error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error('Password reset error:', error);
     throw error;
   }
 };
