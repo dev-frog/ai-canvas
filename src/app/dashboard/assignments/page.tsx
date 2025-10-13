@@ -247,7 +247,7 @@ export default function AssignmentsPage() {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading assignments...</p>
         </div>
       </div>
