@@ -245,7 +245,7 @@ export default function AssignmentsPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading assignments...</p>

@@ -967,9 +967,9 @@ export default function CanvasPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-30 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your canvas...</p>
         </div>
       </div>
@@ -1032,7 +1032,7 @@ export default function CanvasPage() {
             >
               {saving ? (
                 <>
-                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-blue-600 mr-1 sm:mr-2"></div>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-gray-200 border-t-blue-600 mr-1 sm:mr-2"></div>
                   <span className="hidden lg:inline">Saving...</span>
                 </>
               ) : lastSaved ? (
@@ -1423,7 +1423,7 @@ export default function CanvasPage() {
               {isProcessingAI && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                   <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-2"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-200 border-t-blue-600 mr-2"></div>
                     <span className="text-sm text-gray-600">AI is thinking...</span>
                   </div>
                 </div>
