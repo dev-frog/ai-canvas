@@ -1281,7 +1281,7 @@ export default function CanvasPage() {
                     </label>
                     <div className="ml-2 group relative">
                       <QuestionMarkCircleIcon className="h-4 w-4 text-gray-400 cursor-help" />
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-20">
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-[9999]">
                         Show inline suggestions while you type. Use Tab to accept.
                       </div>
                     </div>
