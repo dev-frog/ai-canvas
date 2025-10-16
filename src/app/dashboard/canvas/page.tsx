@@ -397,30 +397,62 @@ export default function CanvasPage() {
     }
   };
 
-  // Simulate autocomplete suggestions
+  // Autocomplete suggestions on typing pause
   useEffect(() => {
-    if (!autocompleteEnabled || !content) {
+    if (!autocompleteEnabled || !content || !submissionId) {
       setAutocompleteSuggestions([]);
       return;
     }
 
-    const timer = setTimeout(() => {
-      // Mock autocomplete logic - in real app, this would call an API
-      const lastWords = content.split(' ').slice(-2).join(' ').toLowerCase();
-      const mockSuggestions: string[] = [];
+    // Check token limit
+    if (aiTokensUsed >= aiTokenLimit) {
+      setAutocompleteSuggestions([]);
+      return;
+    }
 
-      if (lastWords.includes('climate')) {
-        mockSuggestions.push(' change impacts global ecosystems');
-        mockSuggestions.push(' patterns are shifting rapidly');
-        mockSuggestions.push(' science demonstrates clear evidence');
+    const timer = setTimeout(async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          return;
+        }
+        const idToken = await currentUser.getIdToken();
+
+        const response = await fetch('/api/ai/autocomplete-suggestions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            text: content,
+            submissionId,
+          }),
+        });
+
+        if (!response.ok) {
+          setAutocompleteSuggestions([]);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success && data.suggestions && Array.isArray(data.suggestions)) {
+          setAutocompleteSuggestions(data.suggestions.slice(0, 6));
+          setSelectedSuggestionIndex(0);
+          if (data.tokensUsed !== undefined) {
+            setAiTokensUsed(data.tokensUsed);
+          }
+        } else {
+          setAutocompleteSuggestions([]);
+        }
+      } catch (error) {
+        console.error('Autocomplete error:', error);
+        setAutocompleteSuggestions([]);
       }
-
-      setAutocompleteSuggestions(mockSuggestions.slice(0, 6));
-      setSelectedSuggestionIndex(0);
-    }, 300);
+    }, 500); // 500ms pause before triggering
 
     return () => clearTimeout(timer);
-  }, [content, autocompleteEnabled]);
+  }, [content, autocompleteEnabled, submissionId, aiTokensUsed, aiTokenLimit]);
 
   const generateCitation = async () => {
     if (!selectedText) return;
@@ -445,26 +477,62 @@ export default function CanvasPage() {
   const handleAIContinue = async () => {
     if (isProcessingAI) return;
 
+    if (!submissionId) {
+      alert('Please save your assignment first before using AI assistance.');
+      return;
+    }
+
+    if (aiTokensUsed >= aiTokenLimit) {
+      alert('You have reached the token limit for this assignment.');
+      return;
+    }
+
+    if (!content || content.length < 50) {
+      alert('Please write at least 50 characters before requesting AI to continue.');
+      return;
+    }
+
     setIsProcessingAI(true);
     setShowAIContinue(false);
 
     try {
-      // TODO: Call actual AI API to continue writing
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
+      const idToken = await currentUser.getIdToken();
 
-      // Mock AI response
-      const suggestions = [
-        ' This development has led to significant changes in how we approach environmental policy and climate action worldwide.',
-        ' Furthermore, recent studies have shown that immediate action is crucial to mitigating these effects.',
-        ' These findings suggest a complex relationship between human activity and environmental sustainability.',
-      ];
+      const response = await fetch('/api/ai/continue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          text: content,
+          submissionId,
+        }),
+      });
 
-      const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
-      setAiContinueSuggestion(randomSuggestion);
-      setShowAIContinue(true);
-      setAiTokensUsed(prev => prev + 15);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI continuation');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.suggestion) {
+        setAiContinueSuggestion(data.suggestion);
+        setShowAIContinue(true);
+        if (data.tokensUsed !== undefined) {
+          setAiTokensUsed(data.tokensUsed);
+        }
+      } else {
+        alert('Failed to generate continuation. Please try again.');
+      }
     } catch (error) {
       console.error('AI continue failed:', error);
+      alert('Failed to get AI continuation. Please try again.');
     } finally {
       setIsProcessingAI(false);
     }

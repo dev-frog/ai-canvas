@@ -338,11 +338,20 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
 
         // Set new timeout
         suggestionTimeoutRef.current = setTimeout(async () => {
-          const text = editor.getText();
-          if (text.length > 50) { // Only suggest if there's enough context
+          const fullText = editor.getText();
+          if (fullText.length > 50) { // Only suggest if there's enough context
             setIsLoadingSuggestion(true);
             try {
-              const suggestion = await onAutocompleteRequest(text);
+              // Get cursor position
+              const { from } = editor.state.selection;
+
+              // Get text before cursor (last 300 chars) and after cursor (next 100 chars)
+              const textBeforeCursor = fullText.substring(Math.max(0, from - 300), from);
+              const textAfterCursor = fullText.substring(from, Math.min(fullText.length, from + 100));
+
+              // Send context around cursor
+              const contextText = textBeforeCursor + '|CURSOR|' + textAfterCursor;
+              const suggestion = await onAutocompleteRequest(contextText);
               setAutocompleteSuggestion(suggestion);
             } catch (error) {
               console.error('Autocomplete error:', error);

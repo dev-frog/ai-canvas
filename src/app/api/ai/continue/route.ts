@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.role !== 'student') {
-      return NextResponse.json({ error: 'Only students can use autocomplete' }, { status: 403 });
+      return NextResponse.json({ error: 'Only students can use AI continue' }, { status: 403 });
     }
 
     const { text, submissionId } = await req.json();
@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
     const tokensUsed = submission.aiUsageStats?.tokensUsed || 0;
     const tokenLimit = submission.aiUsageStats?.tokenLimit || 1000;
 
-    // Strictly enforce token limit - do not allow any requests if at or above limit
     if (tokensUsed >= tokenLimit) {
       return NextResponse.json({
         success: false,
@@ -55,20 +54,8 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
 
-    // Extract context around cursor if |CURSOR| marker is present
-    let context = text;
-    let beforeCursor = '';
-    let afterCursor = '';
-
-    if (text.includes('|CURSOR|')) {
-      const parts = text.split('|CURSOR|');
-      beforeCursor = parts[0];
-      afterCursor = parts[1] || '';
-      context = `${beforeCursor}[cursor position]${afterCursor}`;
-    } else {
-      // Fallback to last 500 characters if no cursor marker
-      context = text.slice(-500);
-    }
+    // Get last 800 characters for context
+    const context = text.slice(-800);
 
     // Call Gemini API
     const response = await fetch(
@@ -83,19 +70,19 @@ export async function POST(req: NextRequest) {
             {
               parts: [
                 {
-                  text: `You are helping a student write their academic assignment. The text shows where the cursor is currently positioned with [cursor position]. Suggest ONE SHORT sentence (10-15 words max) that continues naturally from the cursor position. Only provide the suggestion text, nothing else.
+                  text: `You are helping a student continue writing their academic assignment. Based on the context below, write 1-2 sentences (20-30 words) that continue their writing naturally and meaningfully. Match their writing style and stay on topic. Only provide the continuation text, nothing else.
 
 Context:
 ${context}
 
-Suggestion:`,
+Continuation:`,
                 },
               ],
             },
           ],
           generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 50,
+            temperature: 0.8,
+            maxOutputTokens: 100,
           },
         }),
       }
@@ -104,20 +91,22 @@ Suggestion:`,
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Gemini API error:', errorData);
-      return NextResponse.json({ success: true, suggestion: '' });
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to generate continuation'
+      }, { status: 500 });
     }
 
     const data = await response.json();
     const suggestion = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const tokensUsedInRequest = data.usageMetadata?.totalTokenCount || 0;
 
-    // Update submission with tokens used, but cap at token limit
+    // Update submission with tokens used
     if (tokensUsedInRequest > 0) {
       submission.aiUsageStats = submission.aiUsageStats || {};
       const currentTokens = submission.aiUsageStats.tokensUsed || 0;
       const newTotal = currentTokens + tokensUsedInRequest;
 
-      // Cap at token limit to prevent exceeding
       submission.aiUsageStats.tokensUsed = Math.min(newTotal, tokenLimit);
       await submission.save();
     }
@@ -126,12 +115,15 @@ Suggestion:`,
 
     return NextResponse.json({
       success: true,
-      suggestion: suggestion.trim(),
+      suggestion: ' ' + suggestion.trim(),
       tokensUsed: newTokensUsed,
       tokenLimit,
     });
   } catch (error) {
-    console.error('Error in autocomplete:', error);
-    return NextResponse.json({ success: true, suggestion: '' });
+    console.error('Error in AI continue:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to generate continuation'
+    }, { status: 500 });
   }
 }

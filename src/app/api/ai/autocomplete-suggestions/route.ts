@@ -45,25 +45,21 @@ export async function POST(req: NextRequest) {
     const tokensUsed = submission.aiUsageStats?.tokensUsed || 0;
     const tokenLimit = submission.aiUsageStats?.tokenLimit || 1000;
 
-    // Strictly enforce token limit - do not allow any requests if at or above limit
     if (tokensUsed >= tokenLimit) {
       return NextResponse.json({
-        success: false,
-        error: 'You have reached the token limit for this assignment',
+        success: true,
+        suggestions: [],
         tokensUsed,
         tokenLimit
-      }, { status: 429 });
+      });
     }
 
     // Extract context around cursor if |CURSOR| marker is present
     let context = text;
-    let beforeCursor = '';
-    let afterCursor = '';
-
     if (text.includes('|CURSOR|')) {
       const parts = text.split('|CURSOR|');
-      beforeCursor = parts[0];
-      afterCursor = parts[1] || '';
+      const beforeCursor = parts[0];
+      const afterCursor = parts[1] || '';
       context = `${beforeCursor}[cursor position]${afterCursor}`;
     } else {
       // Fallback to last 500 characters if no cursor marker
@@ -83,41 +79,51 @@ export async function POST(req: NextRequest) {
             {
               parts: [
                 {
-                  text: `You are helping a student write their academic assignment. The text shows where the cursor is currently positioned with [cursor position]. Suggest ONE SHORT sentence (10-15 words max) that continues naturally from the cursor position. Only provide the suggestion text, nothing else.
+                  text: `You are helping a student write their academic assignment. The text shows where the cursor is currently positioned with [cursor position]. Provide 3-5 diverse, short suggestions (each 5-12 words) that could continue naturally from the cursor position. Provide ONLY the suggestions, one per line, nothing else.
 
 Context:
 ${context}
 
-Suggestion:`,
+Suggestions:`,
                 },
               ],
             },
           ],
           generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 50,
+            temperature: 0.9,
+            maxOutputTokens: 150,
           },
         }),
       }
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API error:', errorData);
-      return NextResponse.json({ success: true, suggestion: '' });
+      console.error('Gemini API error');
+      return NextResponse.json({
+        success: true,
+        suggestions: []
+      });
     }
 
     const data = await response.json();
-    const suggestion = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const suggestionsText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const tokensUsedInRequest = data.usageMetadata?.totalTokenCount || 0;
 
-    // Update submission with tokens used, but cap at token limit
+    // Parse suggestions (one per line)
+    const suggestions = suggestionsText
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s && s.length > 0)
+      .map(s => s.replace(/^[-*•]\s*/, '').trim()) // Remove list markers
+      .map(s => s.startsWith(' ') ? s : ' ' + s) // Add leading space
+      .slice(0, 6);
+
+    // Update submission with tokens used
     if (tokensUsedInRequest > 0) {
       submission.aiUsageStats = submission.aiUsageStats || {};
       const currentTokens = submission.aiUsageStats.tokensUsed || 0;
       const newTotal = currentTokens + tokensUsedInRequest;
 
-      // Cap at token limit to prevent exceeding
       submission.aiUsageStats.tokensUsed = Math.min(newTotal, tokenLimit);
       await submission.save();
     }
@@ -126,12 +132,15 @@ Suggestion:`,
 
     return NextResponse.json({
       success: true,
-      suggestion: suggestion.trim(),
+      suggestions,
       tokensUsed: newTokensUsed,
       tokenLimit,
     });
   } catch (error) {
-    console.error('Error in autocomplete:', error);
-    return NextResponse.json({ success: true, suggestion: '' });
+    console.error('Error in autocomplete suggestions:', error);
+    return NextResponse.json({
+      success: true,
+      suggestions: []
+    });
   }
 }
