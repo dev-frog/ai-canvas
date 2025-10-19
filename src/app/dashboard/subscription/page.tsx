@@ -45,11 +45,10 @@ const plans: PricingPlan[] = [
   {
     id: 'monthly',
     name: 'Pro Monthly',
-    price: 19.99,
+    price: 10.00,
     interval: 'month',
     description: 'Advanced features for serious students and educators',
     popular: true,
-    // Replace with your actual Stripe Price ID from dashboard
     stripeId: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY || 'price_1QYourMonthlyPriceId',
     features: [
       '10,000 AI tokens per month',
@@ -65,10 +64,9 @@ const plans: PricingPlan[] = [
   {
     id: 'yearly',
     name: 'Pro Yearly',
-    price: 199.99,
+    price: 100.00,
     interval: 'year',
     description: 'Best value for long-term users - save 17%',
-    // Replace with your actual Stripe Price ID from dashboard
     stripeId: process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY || 'price_1QYourYearlyPriceId',
     features: [
       '15,000 AI tokens per month',

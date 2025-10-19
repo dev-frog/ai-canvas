@@ -40,7 +40,7 @@ const plans = [
   {
     id: 'monthly',
     name: 'Pro Monthly',
-    price: 19.99,
+    price: 10.00,
     interval: 'month',
     description: 'Advanced features for serious students and educators',
     popular: true,
@@ -63,8 +63,8 @@ const plans = [
   {
     id: 'yearly',
     name: 'Pro Yearly',
-    price: 199.99,
-    originalPrice: 239.88,
+    price: 100.00,
+    originalPrice: 120.00,
     interval: 'year',
     description: 'Best value for long-term users - save 17%',
     popular: false,
