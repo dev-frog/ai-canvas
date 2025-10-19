@@ -74,8 +74,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check if APP_URL is configured
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Get the base URL - works with Vercel, localhost, and custom domains
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                   'http://localhost:3000';
     console.log('Using app URL:', appUrl);
 
     // Create checkout session
