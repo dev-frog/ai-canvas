@@ -10,6 +10,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('STRIPE_SECRET_KEY is not configured');
+      return NextResponse.json(
+        { error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your environment variables.' },
+        { status: 500 }
+      );
+    }
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -40,10 +49,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Creating checkout session for price:', priceId);
+
     // Create or retrieve Stripe customer
     let customerId = user.stripeCustomerId;
 
     if (!customerId) {
+      console.log('Creating new Stripe customer for user:', user.email);
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
@@ -54,12 +66,17 @@ export async function POST(request: NextRequest) {
       });
 
       customerId = customer.id;
+      console.log('Created Stripe customer:', customerId);
 
       // Update user with Stripe customer ID
       await User.findByIdAndUpdate(user._id, {
         stripeCustomerId: customerId,
       });
     }
+
+    // Check if APP_URL is configured
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    console.log('Using app URL:', appUrl);
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -72,22 +89,34 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription?canceled=true`,
+      success_url: `${appUrl}/dashboard/subscription?success=true`,
+      cancel_url: `${appUrl}/dashboard/subscription?canceled=true`,
       metadata: {
         userId: user._id.toString(),
         priceId,
       },
     });
 
+    console.log('Checkout session created:', session.id);
+
     return NextResponse.json({
       success: true,
       url: session.url,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Stripe checkout error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      statusCode: error.statusCode,
+    });
+
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      {
+        error: error.message || 'Failed to create checkout session',
+        details: error.type || 'unknown_error'
+      },
       { status: 500 }
     );
   }

@@ -48,7 +48,8 @@ const plans: PricingPlan[] = [
     interval: 'month',
     description: 'Advanced features for serious students and educators',
     popular: true,
-    stripeId: 'price_monthly_pro',
+    // Replace with your actual Stripe Price ID from dashboard
+    stripeId: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY || 'price_1QYourMonthlyPriceId',
     features: [
       '10,000 AI tokens per month',
       'Advanced writing suggestions',
@@ -66,7 +67,8 @@ const plans: PricingPlan[] = [
     price: 199.99,
     interval: 'year',
     description: 'Best value for long-term users - save 17%',
-    stripeId: 'price_yearly_pro',
+    // Replace with your actual Stripe Price ID from dashboard
+    stripeId: process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY || 'price_1QYourYearlyPriceId',
     features: [
       '15,000 AI tokens per month',
       'Everything in Pro Monthly',
@@ -111,17 +113,33 @@ export default function SubscriptionPage() {
 
     setProcessingPlan(plan.id);
     try {
-      // This would integrate with Stripe
+      // Get Firebase ID token for authentication
+      const { auth } = await import('@/lib/firebase');
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
+
+      const idToken = await currentUser.getIdToken();
+
+      // Create Stripe checkout session
       const response = await fetch('/api/subscription/create-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           priceId: plan.stripeId,
           userId: user._id
         })
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create checkout session');
+      }
 
       const { url } = await response.json();
       if (url) {
@@ -132,7 +150,7 @@ export default function SubscriptionPage() {
       // Show error message
       const errorMsg = document.createElement('div');
       errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md z-50';
-      errorMsg.textContent = 'Failed to start checkout. Please try again.';
+      errorMsg.textContent = error instanceof Error ? error.message : 'Failed to start checkout. Please try again.';
       document.body.appendChild(errorMsg);
       setTimeout(() => document.body.removeChild(errorMsg), 3000);
     } finally {
