@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, updateUserProfile } from '@/lib/auth';
-import { User } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   UserIcon,
   Cog6ToothIcon,
@@ -13,8 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, updateProfile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [formData, setFormData] = useState({
@@ -29,40 +27,29 @@ export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        if (!currentUser) {
-          router.push('/auth/login');
-          return;
-        }
-        setUser(currentUser);
-        setFormData({
-          name: currentUser.name,
-          email: currentUser.email,
-          preferences: currentUser.preferences
-        });
-      } catch (error) {
-        console.error('Failed to load user:', error);
-        router.push('/auth/login');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!loading && !user) {
+      router.push('/auth/login');
+      return;
+    }
 
-    loadUser();
-  }, [router]);
+    if (user) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        preferences: user.preferences
+      });
+    }
+  }, [user, loading, router]);
 
   const handleSave = async () => {
     if (!user) return;
 
     setSaving(true);
     try {
-      const updatedUser = await updateUserProfile({
+      await updateProfile({
         name: formData.name,
         preferences: formData.preferences
       });
-      setUser(updatedUser);
 
       // Show success message
       const successMsg = document.createElement('div');
