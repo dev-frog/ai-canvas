@@ -1,74 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
-import { User } from '@/types';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // First check if there's a Firebase user (client-side)
-        const firebaseUser = auth.currentUser;
-        if (!firebaseUser) {
-          router.push('/auth/login');
-          return;
-        }
-
-        // Then try to get user data from server
-        const currentUser = await getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-
-          // Redirect based on user role
-          switch (currentUser.role) {
-            case 'student':
-              router.push('/dashboard/student');
-              break;
-            case 'teacher':
-              router.push('/dashboard/teacher');
-              break;
-            case 'admin':
-              router.push('/dashboard/admin');
-              break;
-            default:
-              router.push('/dashboard/student');
-          }
-        } else {
-          console.warn('Server auth check failed, but Firebase user exists');
-          // Stay on this page and show loading while retrying
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        // Only redirect to login if there's no Firebase user
-        const firebaseUser = auth.currentUser;
-        if (!firebaseUser) {
-          router.push('/auth/login');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Wait for Firebase auth to initialize
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        checkAuth();
-      } else {
+    if (!loading) {
+      if (!user) {
         router.push('/auth/login');
-        setLoading(false);
+      } else {
+        // Redirect based on user role
+        switch (user.role) {
+          case 'student':
+            router.push('/dashboard/student');
+            break;
+          case 'teacher':
+            router.push('/dashboard/teacher');
+            break;
+          case 'admin':
+            router.push('/dashboard/admin');
+            break;
+          default:
+            router.push('/dashboard/student');
+        }
       }
-    });
-
-    return () => unsubscribe();
-  }, [router]);
+    }
+  }, [user, loading, router]);
 
   if (loading) {
     return (

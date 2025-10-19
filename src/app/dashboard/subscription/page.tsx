@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { User } from '@/types';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import {
   CheckIcon,
   XMarkIcon,
@@ -86,6 +87,7 @@ export default function SubscriptionPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -176,6 +178,56 @@ export default function SubscriptionPage() {
     }
   };
 
+  const handleSyncSubscription = async () => {
+    setSyncing(true);
+    try {
+      const { auth } = await import('@/lib/firebase');
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
+
+      const idToken = await currentUser.getIdToken();
+
+      const response = await fetch('/api/subscription/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Reload user data
+        const updatedUser = await getCurrentUser();
+        if (updatedUser) {
+          setUser(updatedUser);
+        }
+
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md z-50';
+        successMsg.textContent = data.message || 'Subscription synced successfully!';
+        document.body.appendChild(successMsg);
+        setTimeout(() => document.body.removeChild(successMsg), 3000);
+      } else {
+        throw new Error(data.error || 'Failed to sync subscription');
+      }
+    } catch (error) {
+      console.error('Failed to sync subscription:', error);
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md z-50';
+      errorMsg.textContent = error instanceof Error ? error.message : 'Failed to sync subscription';
+      document.body.appendChild(errorMsg);
+      setTimeout(() => document.body.removeChild(errorMsg), 3000);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const getCurrentPlanFeatures = () => {
     if (!user) return [];
 
@@ -256,17 +308,25 @@ export default function SubscriptionPage() {
 
             <div>
               <h3 className="text-sm font-medium text-gray-500">Quick Actions</h3>
-              <div className="mt-2">
+              <div className="mt-2 space-y-2">
                 {user.subscriptionTier !== 'free' ? (
                   <button
                     onClick={handleManageSubscription}
-                    className="text-blue-600 hover:text-blue-500 text-sm font-medium"
+                    className="block text-blue-600 hover:text-blue-500 text-sm font-medium"
                   >
                     Manage Subscription →
                   </button>
                 ) : (
                   <p className="text-sm text-gray-500">Upgrade to access premium features</p>
                 )}
+                <button
+                  onClick={handleSyncSubscription}
+                  disabled={syncing}
+                  className="flex items-center text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50"
+                >
+                  <ArrowPathIcon className={`h-4 w-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Syncing...' : 'Sync Subscription'}
+                </button>
               </div>
             </div>
           </div>

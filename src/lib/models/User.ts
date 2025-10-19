@@ -27,10 +27,14 @@ const userSchema = new Schema<UserDocument>({
   },
   subscriptionStatus: {
     type: String,
-    enum: ['free', 'active', 'canceled', 'expired'],
+    enum: ['free', 'active', 'canceled', 'expired', 'past_due', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid'],
     default: 'free',
   },
   stripeCustomerId: {
+    type: String,
+    sparse: true,
+  },
+  stripeSubscriptionId: {
     type: String,
     sparse: true,
   },
