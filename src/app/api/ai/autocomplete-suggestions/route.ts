@@ -112,10 +112,10 @@ Suggestions:`,
     // Parse suggestions (one per line)
     const suggestions = suggestionsText
       .split('\n')
-      .map(s => s.trim())
-      .filter(s => s && s.length > 0)
-      .map(s => s.replace(/^[-*•]\s*/, '').trim()) // Remove list markers
-      .map(s => s.startsWith(' ') ? s : ' ' + s) // Add leading space
+      .map((s: string) => s.trim())
+      .filter((s: string) => s && s.length > 0)
+      .map((s: string) => s.replace(/^[-*•]\s*/, '').trim()) // Remove list markers
+      .map((s: string) => s.startsWith(' ') ? s : ' ' + s) // Add leading space
       .slice(0, 6);
 
     // Update submission with tokens used
