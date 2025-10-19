@@ -4,8 +4,9 @@ export interface User {
   email: string;
   name: string;
   role: 'student' | 'teacher' | 'admin';
-  subscriptionStatus: 'free' | 'active' | 'canceled' | 'expired';
+  subscriptionStatus: 'free' | 'active' | 'canceled' | 'expired' | 'past_due' | 'trialing' | 'incomplete' | 'incomplete_expired' | 'unpaid';
   stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
   subscriptionTier: 'free' | 'monthly' | 'yearly';
   aiTokensUsed: number;
   aiTokensLimit: number;
