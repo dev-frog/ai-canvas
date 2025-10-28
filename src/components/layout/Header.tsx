@@ -66,8 +66,8 @@ const Header: React.FC<HeaderProps> = ({ user, onMenuClick }) => {
 
             {/* Right side */}
             <div className="flex items-center space-x-4">
-              <button className="text-gray-400 hover:text-gray-500">
-                <BellIcon className="h-6 w-6" />
+              <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <BellIcon className="h-8 w-8" />
               </button>
 
               <div className="relative">
