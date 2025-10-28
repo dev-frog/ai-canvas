@@ -333,9 +333,24 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
             <PaperAirplaneIcon className="h-5 w-5" />
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          Press <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Shift+Enter</kbd> for new line
-        </p>
+        <div className="mt-2 space-y-1">
+          <p className="text-xs text-gray-500">
+            Press <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Shift+Enter</kbd> for new line
+          </p>
+          {tokensUsed < tokenLimit * 0.7 ? (
+            <p className="text-xs text-blue-600">
+              💡 Tip: Keep questions focused and concise to make the most of your tokens.
+            </p>
+          ) : tokensUsed < tokenLimit * 0.9 ? (
+            <p className="text-xs text-yellow-600">
+              ⚠️ You've used {Math.round((tokensUsed / tokenLimit) * 100)}% of tokens. Ask concise questions.
+            </p>
+          ) : (
+            <p className="text-xs text-red-600 font-medium">
+              ⚠️ Token limit almost reached ({tokensUsed}/{tokenLimit}). Questions may be rejected.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -63,7 +63,8 @@ export default function CanvasPage() {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+  // Disable autocomplete by default for free tier to conserve tokens
+  const [autocompleteEnabled, setAutocompleteEnabled] = useState(false);
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [showAIChat, setShowAIChat] = useState(false);
@@ -1391,6 +1392,16 @@ export default function CanvasPage() {
                 <p className="text-xs text-gray-500">
                   When enabled, displays up to 6 inline autocomplete suggestions as you type, navigable with arrow keys and accepted with Tab or Enter.
                 </p>
+                {!autocompleteEnabled && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                    💡 <strong>Tip:</strong> Autocomplete is disabled by default to conserve your tokens. Enable it when you need writing assistance.
+                  </div>
+                )}
+                {autocompleteEnabled && (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                    ⚠️ <strong>Note:</strong> Autocomplete uses tokens with each suggestion. Consider using it sparingly, especially on free tier (1,000 tokens per assignment).
+                  </div>
+                )}
               </div>
 
               {/* Quick Actions */}

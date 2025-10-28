@@ -58,20 +58,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Build conversation context for Gemini
-    const systemPrompt = `You are an AI Research Assistant helping students with their academic writing. Your role is to:
-- Help students brainstorm ideas and develop their arguments
-- Find and suggest relevant sources and citations
-- Improve writing quality and style
-- Answer research questions with accurate information
-- Guide students to think critically about their topics
+    const systemPrompt = `You are a concise AI Research Assistant for students. Help with brainstorming, sources, and writing improvement. Keep responses brief and focused.`;
 
-Keep responses concise, informative, and educational. Focus on helping students learn and develop their own ideas rather than writing for them.`;
-
-    // Build the conversation history for context
+    // Limit conversation history to reduce token usage
+    // Only include last 2 exchanges (4 messages) for context
     let conversationContext = systemPrompt + '\n\n';
     if (conversationHistory && Array.isArray(conversationHistory)) {
-      conversationHistory.forEach((msg: { role: string; content: string }) => {
-        conversationContext += `${msg.role === 'user' ? 'Student' : 'Assistant'}: ${msg.content}\n`;
+      const recentHistory = conversationHistory.slice(-4);
+      recentHistory.forEach((msg: { role: string; content: string }) => {
+        // Truncate very long messages to save tokens
+        const truncatedContent = msg.content.length > 500
+          ? msg.content.substring(0, 500) + '...'
+          : msg.content;
+        conversationContext += `${msg.role === 'user' ? 'Student' : 'Assistant'}: ${truncatedContent}\n`;
       });
     }
     conversationContext += `Student: ${message}\nAssistant:`;
@@ -98,7 +97,7 @@ Keep responses concise, informative, and educational. Focus on helping students 
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 300, // Reduced from 1024 to ensure concise, helpful responses
           },
           safetySettings: [
             {
