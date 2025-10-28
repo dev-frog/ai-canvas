@@ -91,10 +91,21 @@ Continuation:`,
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Gemini API error:', errorData);
+
+      let errorMessage = 'Failed to generate continuation. ';
+      if (response.status === 429) {
+        errorMessage += 'API rate limit reached. Please try again in a moment.';
+      } else if (response.status === 503) {
+        errorMessage += 'AI service is temporarily unavailable. Please try again later.';
+      } else {
+        errorMessage += 'Please try again.';
+      }
+
       return NextResponse.json({
         success: false,
-        error: 'Failed to generate continuation'
-      }, { status: 500 });
+        error: errorMessage,
+        apiError: true
+      }, { status: response.status });
     }
 
     const data = await response.json();

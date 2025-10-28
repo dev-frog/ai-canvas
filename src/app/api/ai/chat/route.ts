@@ -125,8 +125,25 @@ Keep responses concise, informative, and educational. Focus on helping students 
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Gemini API error:', errorData);
+
+      // Provide more specific error messages
+      let errorMessage = 'Failed to get AI response. ';
+      if (response.status === 429) {
+        errorMessage += 'API rate limit reached. Please try again in a moment.';
+      } else if (response.status === 503) {
+        errorMessage += 'AI service is temporarily unavailable. Please try again later.';
+      } else if (response.status === 400) {
+        errorMessage += 'Invalid request format. Please try rephrasing your question.';
+      } else {
+        errorMessage += 'Please try again or contact support if the issue persists.';
+      }
+
       return NextResponse.json(
-        { error: 'Failed to get AI response' },
+        {
+          error: errorMessage,
+          apiError: true,
+          statusCode: response.status
+        },
         { status: response.status }
       );
     }

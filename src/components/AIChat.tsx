@@ -123,6 +123,20 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle token limit error specifically
+        if (response.status === 429) {
+          const tokenMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: `⚠️ **Token Limit Reached**\n\n${errorData.error || 'You have reached your token limit for this assignment.'}\n\n**Current Usage:** ${errorData.tokensUsed || tokensUsed}/${errorData.tokenLimit || tokenLimit} tokens\n\nPlease upgrade your plan or start a new assignment to continue using AI assistance.`,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, tokenMessage]);
+          setIsLoading(false);
+          return;
+        }
+
         throw new Error(errorData.error || 'Failed to get AI response');
       }
 
@@ -144,11 +158,28 @@ export default function AIChat({ onInsert, submissionId, tokensUsed, tokenLimit,
     } catch (error) {
       console.error('AI chat error:', error);
 
-      // Show error message to user
+      // Show detailed error message to user
+      let errorContent = '❌ **Error Processing Request**\n\n';
+
+      if (error instanceof Error) {
+        errorContent += error.message;
+
+        // Check if it's an API-specific error
+        if (error.message.includes('API rate limit')) {
+          errorContent += '\n\n💡 This is a temporary issue with the AI service. Please wait a moment and try again.';
+        } else if (error.message.includes('temporarily unavailable')) {
+          errorContent += '\n\n💡 The AI service is experiencing high demand. Please try again in a few minutes.';
+        } else {
+          errorContent += '\n\n💡 Please try rephrasing your question or contact support if the issue persists.';
+        }
+      } else {
+        errorContent += 'Sorry, I encountered an unexpected error processing your request. Please try again.';
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        content: errorContent,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);

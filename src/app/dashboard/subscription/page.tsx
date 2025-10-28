@@ -268,67 +268,95 @@ export default function SubscriptionPage() {
 
       {/* Current Usage */}
       {user && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Current Plan</h2>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 capitalize">
-              {user.subscriptionTier || 'free'}
-            </span>
-          </div>
+        <>
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Current Plan</h2>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 capitalize">
+                {user.subscriptionTier || 'free'}
+              </span>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">AI Tokens Used</h3>
-              <div className="mt-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>{user.aiTokensUsed.toLocaleString()}</span>
-                  <span>{user.aiTokensLimit.toLocaleString()}</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Monthly AI Tokens</h3>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold text-gray-900">{user.aiTokensUsed.toLocaleString()}</span>
+                    <span className="text-gray-600">/ {user.aiTokensLimit.toLocaleString()}</span>
+                  </div>
+                  <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        getUsagePercentage() >= 90 ? 'bg-red-500' :
+                        getUsagePercentage() >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(getUsagePercentage(), 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {getUsagePercentage()}% used • {(user.aiTokensLimit - user.aiTokensUsed).toLocaleString()} remaining
+                  </p>
                 </div>
-                <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      getUsagePercentage() >= 90 ? 'bg-red-500' :
-                      getUsagePercentage() >= 70 ? 'bg-yellow-500' : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(getUsagePercentage(), 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{getUsagePercentage()}% used this month</p>
               </div>
-            </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Subscription Status</h3>
-              <p className="text-lg font-medium text-gray-900 capitalize mt-1">
-                {user.subscriptionStatus || 'Free'}
-              </p>
-            </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Subscription Status</h3>
+                <p className="text-lg font-medium text-gray-900 capitalize mt-1">
+                  {user.subscriptionStatus || 'Free'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {user.subscriptionTier === 'free' ? 'No billing' : 'Auto-renews monthly'}
+                </p>
+              </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Quick Actions</h3>
-              <div className="mt-2 space-y-2">
-                {user.subscriptionTier !== 'free' ? (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Quick Actions</h3>
+                <div className="mt-2 space-y-2">
+                  {user.subscriptionTier !== 'free' ? (
+                    <button
+                      onClick={handleManageSubscription}
+                      className="block text-blue-600 hover:text-blue-500 text-sm font-medium"
+                    >
+                      Manage Subscription →
+                    </button>
+                  ) : (
+                    <p className="text-sm text-gray-500">Upgrade to access premium features</p>
+                  )}
                   <button
-                    onClick={handleManageSubscription}
-                    className="block text-blue-600 hover:text-blue-500 text-sm font-medium"
+                    onClick={handleSyncSubscription}
+                    disabled={syncing}
+                    className="flex items-center text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50"
                   >
-                    Manage Subscription →
+                    <ArrowPathIcon className={`h-4 w-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Syncing...' : 'Sync Subscription'}
                   </button>
-                ) : (
-                  <p className="text-sm text-gray-500">Upgrade to access premium features</p>
-                )}
-                <button
-                  onClick={handleSyncSubscription}
-                  disabled={syncing}
-                  className="flex items-center text-gray-600 hover:text-gray-800 text-sm font-medium disabled:opacity-50"
-                >
-                  <ArrowPathIcon className={`h-4 w-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? 'Syncing...' : 'Sync Subscription'}
-                </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Token Usage Explanation */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-sm p-6 mb-8 border border-blue-100">
+            <div className="flex items-start">
+              <BoltIcon className="h-6 w-6 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Understanding AI Token Usage</h3>
+                <div className="space-y-2 text-sm text-gray-700">
+                  <p>
+                    <strong>Account-level tokens:</strong> The {user.aiTokensLimit.toLocaleString()} tokens shown above are your monthly quota across all assignments. You've used {user.aiTokensUsed.toLocaleString()} tokens this month.
+                  </p>
+                  <p>
+                    <strong>Per-assignment limits:</strong> Each individual assignment has a 1,000 token limit to encourage balanced AI use across your work. This prevents using all monthly tokens on a single assignment.
+                  </p>
+                  <p className="text-xs text-gray-600 italic mt-3">
+                    💡 Tip: Token consumption varies by feature. AI Chat uses more tokens than quick grammar checks. Plan your usage accordingly!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Pricing Cards */}

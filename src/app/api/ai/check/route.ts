@@ -145,7 +145,20 @@ Response (JSON only):`;
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Gemini API error:', errorData);
-      return NextResponse.json({ error: 'Failed to get AI suggestions' }, { status: response.status });
+
+      let errorMessage = 'Failed to get AI suggestions. ';
+      if (response.status === 429) {
+        errorMessage += 'API rate limit reached. Please try again in a moment.';
+      } else if (response.status === 503) {
+        errorMessage += 'AI service is temporarily unavailable. Please try again later.';
+      } else {
+        errorMessage += 'Please try again or contact support if the issue persists.';
+      }
+
+      return NextResponse.json({
+        error: errorMessage,
+        apiError: true
+      }, { status: response.status });
     }
 
     const data = await response.json();
