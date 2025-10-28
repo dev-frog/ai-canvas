@@ -211,6 +211,7 @@ export default function CanvasPage() {
       const currentUser = auth.currentUser;
       if (!currentUser) {
         console.error('No authenticated user');
+        alert('Not authenticated. Please log in again.');
         return;
       }
       const idToken = await currentUser.getIdToken();
@@ -243,8 +244,17 @@ export default function CanvasPage() {
           throw new Error(data.error || 'Failed to save');
         }
 
-        if (data.success) {
-          setLastSaved(new Date());
+        // Only set lastSaved if backend confirmed success AND returned submission data
+        if (data.success && data.submission) {
+          // Verify that the returned data matches what we sent
+          if (data.submission.content === content && data.submission.title === title) {
+            setLastSaved(new Date());
+            console.log('Save verified successfully');
+          } else {
+            throw new Error('Save verification failed - data mismatch');
+          }
+        } else {
+          throw new Error('Invalid response from server');
         }
       } else {
         // Create new submission
@@ -271,16 +281,23 @@ export default function CanvasPage() {
           throw new Error(data.error || 'Failed to create');
         }
 
-        if (data.success && data.submission) {
+        // Only proceed if backend confirmed success AND returned submission data
+        if (data.success && data.submission && data.submission._id) {
           setSubmissionId(data.submission._id);
           setLastSaved(new Date());
           // Update URL with submission ID without reloading
           const newUrl = `/dashboard/canvas?id=${data.submission._id}${assignmentId ? `&assignment=${assignmentId}` : ''}`;
           window.history.replaceState({ ...window.history.state }, '', newUrl);
+          console.log('Create verified successfully');
+        } else {
+          throw new Error('Invalid response from server');
         }
       }
     } catch (error) {
       console.error('Failed to save:', error);
+      alert(`Failed to save your work: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+      // Reset lastSaved to show save button again
+      setLastSaved(null);
     } finally {
       setSaving(false);
     }

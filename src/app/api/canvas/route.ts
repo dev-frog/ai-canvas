@@ -28,17 +28,24 @@ export async function POST(req: NextRequest) {
       status: 'draft',
     });
 
+    // Verify the creation by reading back from database
+    const verifiedSubmission = await Submission.findById(submission._id);
+
+    if (!verifiedSubmission) {
+      throw new Error('Failed to verify save - document not found after creation');
+    }
+
     return NextResponse.json({
       success: true,
       submission: {
-        _id: submission._id.toString(),
-        title: submission.title,
-        content: submission.content,
-        assignmentType: submission.assignmentType,
-        status: submission.status,
-        wordCount: submission.writingStats?.wordCount || 0,
-        createdAt: submission.createdAt,
-        updatedAt: submission.updatedAt,
+        _id: verifiedSubmission._id.toString(),
+        title: verifiedSubmission.title,
+        content: verifiedSubmission.content,
+        assignmentType: verifiedSubmission.assignmentType,
+        status: verifiedSubmission.status,
+        wordCount: verifiedSubmission.writingStats?.wordCount || 0,
+        createdAt: verifiedSubmission.createdAt,
+        updatedAt: verifiedSubmission.updatedAt,
       }
     });
   } catch (error) {
@@ -146,19 +153,31 @@ export async function PUT(req: NextRequest) {
     if (assignmentType !== undefined) submission.assignmentType = assignmentType;
     if (status !== undefined) submission.status = status;
 
-    await submission.save();
+    const savedSubmission = await submission.save();
+
+    // Verify the save by reading back from database
+    const verifiedSubmission = await Submission.findById(savedSubmission._id);
+
+    if (!verifiedSubmission) {
+      throw new Error('Failed to verify save - document not found after save');
+    }
+
+    // Additional verification: check that the content matches
+    if (content !== undefined && verifiedSubmission.content !== content) {
+      throw new Error('Failed to verify save - content mismatch');
+    }
 
     return NextResponse.json({
       success: true,
       submission: {
-        _id: submission._id.toString(),
-        title: submission.title,
-        content: submission.content,
-        assignmentType: submission.assignmentType,
-        status: submission.status,
-        wordCount: submission.writingStats?.wordCount || 0,
-        createdAt: submission.createdAt,
-        updatedAt: submission.updatedAt,
+        _id: verifiedSubmission._id.toString(),
+        title: verifiedSubmission.title,
+        content: verifiedSubmission.content,
+        assignmentType: verifiedSubmission.assignmentType,
+        status: verifiedSubmission.status,
+        wordCount: verifiedSubmission.writingStats?.wordCount || 0,
+        createdAt: verifiedSubmission.createdAt,
+        updatedAt: verifiedSubmission.updatedAt,
       }
     });
   } catch (error) {
