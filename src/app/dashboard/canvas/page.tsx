@@ -1068,14 +1068,14 @@ export default function CanvasPage() {
       <div className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-3 flex-shrink-0">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {/* Left Section */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 max-w-[50%] sm:max-w-[60%]">
             <DocumentTextIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 truncate">
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <h1 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 truncate" title={assignment?.title || title || 'Untitled'}>
                 {assignment?.title || title || 'Untitled'}
               </h1>
               {assignment && (
-                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block truncate">
                   Due: {new Date(assignment.dueDate).toLocaleDateString()}
                 </p>
               )}
