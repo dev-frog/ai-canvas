@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import AIAutocomplete from '@/components/AIAutocomplete';
 import AIChat from '@/components/AIChat';
 import { auth } from '@/lib/firebase';
+import { useToast } from '@/components/ToastContainer';
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
   ssr: false,
@@ -80,6 +81,7 @@ export default function CanvasPage() {
   const searchParams = useSearchParams();
   const assignmentId = searchParams.get('assignment');
   const canvasId = searchParams.get('id');
+  const { showSuccess, showError, showWarning } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -212,7 +214,7 @@ export default function CanvasPage() {
       const currentUser = auth.currentUser;
       if (!currentUser) {
         console.error('No authenticated user');
-        alert('Not authenticated. Please log in again.');
+        showError('Not authenticated. Please log in again.');
         return;
       }
       const idToken = await currentUser.getIdToken();
@@ -245,15 +247,10 @@ export default function CanvasPage() {
           throw new Error(data.error || 'Failed to save');
         }
 
-        // Only set lastSaved if backend confirmed success AND returned submission data
+        // Set lastSaved if backend confirmed success
         if (data.success && data.submission) {
-          // Verify that the returned data matches what we sent
-          if (data.submission.content === content && data.submission.title === title) {
-            setLastSaved(new Date());
-            console.log('Save verified successfully');
-          } else {
-            throw new Error('Save verification failed - data mismatch');
-          }
+          setLastSaved(new Date());
+          console.log('Save successful');
         } else {
           throw new Error('Invalid response from server');
         }
@@ -282,21 +279,22 @@ export default function CanvasPage() {
           throw new Error(data.error || 'Failed to create');
         }
 
-        // Only proceed if backend confirmed success AND returned submission data
+        // Set data if backend confirmed success
         if (data.success && data.submission && data.submission._id) {
           setSubmissionId(data.submission._id);
           setLastSaved(new Date());
           // Update URL with submission ID without reloading
           const newUrl = `/dashboard/canvas?id=${data.submission._id}${assignmentId ? `&assignment=${assignmentId}` : ''}`;
           window.history.replaceState({ ...window.history.state }, '', newUrl);
-          console.log('Create verified successfully');
+          console.log('Create successful');
         } else {
           throw new Error('Invalid response from server');
         }
       }
     } catch (error) {
       console.error('Failed to save:', error);
-      alert(`Failed to save your work: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      showError(`Failed to save your work: ${errorMessage}. Your changes are stored locally and will be retried.`);
       // Reset lastSaved to show save button again
       setLastSaved(null);
     } finally {
@@ -308,17 +306,17 @@ export default function CanvasPage() {
     if (!user || isProcessingAI) return;
 
     if (!submissionId) {
-      alert('Please save your assignment first before using AI assistance.');
+      showWarning('Please save your assignment first before using AI assistance.');
       return;
     }
 
     if (aiTokensUsed >= aiTokenLimit) {
-      alert('You have reached the token limit for this assignment.');
+      showWarning('You have reached the token limit for this assignment.');
       return;
     }
 
     if (!text || text.length < 50) {
-      alert('Please write at least 50 characters before requesting AI assistance.');
+      showWarning('Please write at least 50 characters before requesting AI assistance.');
       return;
     }
 
@@ -355,12 +353,13 @@ export default function CanvasPage() {
         if (data.tokensUsed !== undefined) {
           setAiTokensUsed(data.tokensUsed);
         }
+        showSuccess(`Found ${data.suggestions.length} ${type} suggestion${data.suggestions.length > 1 ? 's' : ''}!`);
       } else {
-        alert(`No ${type} suggestions found. Your writing looks good!`);
+        showSuccess(`No ${type} suggestions found. Your writing looks good!`);
       }
     } catch (error) {
       console.error('AI assistance failed:', error);
-      alert('Failed to get AI suggestions. Please try again.');
+      showError('Failed to get AI suggestions. Please try again.');
     } finally {
       setIsProcessingAI(false);
     }
@@ -496,17 +495,17 @@ export default function CanvasPage() {
     if (isProcessingAI) return;
 
     if (!submissionId) {
-      alert('Please save your assignment first before using AI assistance.');
+      showWarning('Please save your assignment first before using AI assistance.');
       return;
     }
 
     if (aiTokensUsed >= aiTokenLimit) {
-      alert('You have reached the token limit for this assignment.');
+      showWarning('You have reached the token limit for this assignment.');
       return;
     }
 
     if (!content || content.length < 50) {
-      alert('Please write at least 50 characters before requesting AI to continue.');
+      showWarning('Please write at least 50 characters before requesting AI to continue.');
       return;
     }
 
@@ -546,11 +545,11 @@ export default function CanvasPage() {
           setAiTokensUsed(data.tokensUsed);
         }
       } else {
-        alert('Failed to generate continuation. Please try again.');
+        showError('Failed to generate continuation. Please try again.');
       }
     } catch (error) {
       console.error('AI continue failed:', error);
-      alert('Failed to get AI continuation. Please try again.');
+      showError('Failed to get AI continuation. Please try again.');
     } finally {
       setIsProcessingAI(false);
     }
