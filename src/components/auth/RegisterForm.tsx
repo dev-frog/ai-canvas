@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { AlertCircle, User, GraduationCap } from 'lucide-react';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
+import PasswordMatchIndicator from './PasswordMatchIndicator';
+import { validatePassword, passwordsMatch } from '@/lib/validation/passwordValidation';
 
 const RegisterForm: React.FC = () => {
   const searchParams = useSearchParams();
@@ -19,25 +22,62 @@ const RegisterForm: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [touched, setTouched] = useState({
+    password: false,
+    confirmPassword: false,
+  });
 
   const { register } = useAuth();
   const router = useRouter();
 
+  // Memoize password validation to avoid unnecessary recalculations
+  const passwordValidation = useMemo(
+    () => validatePassword(formData.password),
+    [formData.password]
+  );
+
+  const doPasswordsMatch = useMemo(
+    () => passwordsMatch(formData.password, formData.confirmPassword),
+    [formData.password, formData.confirmPassword]
+  );
+
+  // Check if form is valid
+  const isFormValid = useMemo(() => {
+    return (
+      formData.name.trim() !== '' &&
+      formData.email.trim() !== '' &&
+      passwordValidation.isValid &&
+      doPasswordsMatch
+    );
+  }, [formData.name, formData.email, passwordValidation.isValid, doPasswordsMatch]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleBlur = (field: 'password' | 'confirmPassword') => {
+    setTouched({ ...touched, [field]: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    // Mark all fields as touched to show validation errors
+    setTouched({
+      password: true,
+      confirmPassword: true,
+    });
+
+    // Validate password strength
+    if (!passwordValidation.isValid) {
+      setError('Password does not meet all security requirements');
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Validate password match
+    if (!doPasswordsMatch) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -163,10 +203,14 @@ const RegisterForm: React.FC = () => {
               type="password"
               value={formData.password}
               onChange={handleChange}
+              onBlur={() => handleBlur('password')}
               required
-              placeholder="Create a password"
-              helperText="Must be at least 6 characters"
+              placeholder="Create a strong password"
+              aria-describedby="password-requirements"
             />
+            <div id="password-requirements">
+              <PasswordStrengthIndicator password={formData.password} showRules={touched.password || formData.password.length > 0} />
+            </div>
           </div>
 
           <div>
@@ -176,9 +220,17 @@ const RegisterForm: React.FC = () => {
               type="password"
               value={formData.confirmPassword}
               onChange={handleChange}
+              onBlur={() => handleBlur('confirmPassword')}
               required
               placeholder="Confirm your password"
+              aria-describedby="password-match"
             />
+            <div id="password-match">
+              <PasswordMatchIndicator
+                password={formData.password}
+                confirmPassword={formData.confirmPassword}
+              />
+            </div>
           </div>
 
           <div className="flex items-center">
@@ -205,10 +257,17 @@ const RegisterForm: React.FC = () => {
             type="submit"
             className="w-full"
             isLoading={isLoading}
-            disabled={!formData.name || !formData.email || !formData.password || !formData.confirmPassword}
+            disabled={!isFormValid || isLoading}
+            title={!isFormValid ? 'Please complete all required fields and meet password requirements' : ''}
           >
             Create Account
           </Button>
+
+          {!isFormValid && (formData.name || formData.email || formData.password || formData.confirmPassword) && (
+            <p className="text-xs text-gray-500 text-center mt-2">
+              Complete all requirements above to create your account
+            </p>
+          )}
         </form>
 
         <div className="mt-6 text-center">
