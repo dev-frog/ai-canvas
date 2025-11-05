@@ -307,7 +307,6 @@ const MenuBar = ({ editor }: { editor: any }) => {
 export default function RichTextEditor({ content, onChange, onKeyDown, placeholder, autocompleteEnabled, onAutocompleteRequest }: RichTextEditorProps) {
   const [autocompleteSuggestion, setAutocompleteSuggestion] = useState('');
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
-  const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -328,39 +327,7 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
-
-      // Trigger autocomplete if enabled
-      if (autocompleteEnabled && onAutocompleteRequest) {
-        // Clear existing timeout
-        if (suggestionTimeoutRef.current) {
-          clearTimeout(suggestionTimeoutRef.current);
-        }
-
-        // Set new timeout
-        suggestionTimeoutRef.current = setTimeout(async () => {
-          const fullText = editor.getText();
-          if (fullText.length > 50) { // Only suggest if there's enough context
-            setIsLoadingSuggestion(true);
-            try {
-              // Get cursor position
-              const { from } = editor.state.selection;
-
-              // Get text before cursor (last 300 chars) and after cursor (next 100 chars)
-              const textBeforeCursor = fullText.substring(Math.max(0, from - 300), from);
-              const textAfterCursor = fullText.substring(from, Math.min(fullText.length, from + 100));
-
-              // Send context around cursor
-              const contextText = textBeforeCursor + '|CURSOR|' + textAfterCursor;
-              const suggestion = await onAutocompleteRequest(contextText);
-              setAutocompleteSuggestion(suggestion);
-            } catch (error) {
-              console.error('Autocomplete error:', error);
-            } finally {
-              setIsLoadingSuggestion(false);
-            }
-          }
-        }, 2000); // Wait 2 seconds after typing stops
-      }
+      // Auto-refresh removed - suggestions now triggered manually only
     },
     editorProps: {
       attributes: {
@@ -390,6 +357,28 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
       editor.commands.setContent(content);
     }
   }, [content, editor]);
+
+  // Manual trigger for autocomplete
+  const handleManualSuggestion = async () => {
+    if (!autocompleteEnabled || !onAutocompleteRequest || !editor) return;
+
+    const fullText = editor.getText();
+    if (fullText.length < 50) return;
+
+    setIsLoadingSuggestion(true);
+    try {
+      const { from } = editor.state.selection;
+      const textBeforeCursor = fullText.substring(Math.max(0, from - 300), from);
+      const textAfterCursor = fullText.substring(from, Math.min(fullText.length, from + 100));
+      const contextText = textBeforeCursor + '|CURSOR|' + textAfterCursor;
+      const suggestion = await onAutocompleteRequest(contextText);
+      setAutocompleteSuggestion(suggestion);
+    } catch (error) {
+      console.error('Autocomplete error:', error);
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
+  };
 
   useEffect(() => {
     // Render math expressions after editor updates
@@ -427,9 +416,21 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
       <div className="px-12 py-6 relative">
         <EditorContent editor={editor} className="math-content prose prose-lg max-w-none focus:outline-none" />
 
+        {/* Manual Suggestion Button */}
+        {autocompleteEnabled && !autocompleteSuggestion && !isLoadingSuggestion && (
+          <button
+            onClick={handleManualSuggestion}
+            className="fixed bottom-8 right-8 flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg shadow-lg hover:from-purple-700 hover:to-blue-700 transition-all z-50 animate-fadeIn"
+            title="Get AI writing suggestion"
+          >
+            <SparklesIcon className="h-5 w-5 mr-2" />
+            <span className="text-sm font-medium">Get Suggestion</span>
+          </button>
+        )}
+
         {/* Autocomplete Suggestion */}
         {autocompleteEnabled && autocompleteSuggestion && (
-          <div className="fixed bottom-20 right-8 max-w-md bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg shadow-lg p-4 z-50 animate-fadeIn">
+          <div className="fixed bottom-8 right-8 max-w-md bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg shadow-lg p-4 z-50 animate-fadeIn">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center">
                 <SparklesIcon className="h-4 w-4 text-purple-600 mr-2" />
@@ -464,7 +465,7 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
 
         {/* Loading indicator */}
         {autocompleteEnabled && isLoadingSuggestion && (
-          <div className="fixed bottom-20 right-8 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
+          <div className="fixed bottom-8 right-8 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
             <div className="flex items-center text-sm text-gray-600">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
               Getting AI suggestion...

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { User } from '@/types';
 import dynamic from 'next/dynamic';
-import AIAutocomplete from '@/components/AIAutocomplete';
 import AIChat from '@/components/AIChat';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/components/ToastContainer';
@@ -66,11 +65,7 @@ export default function CanvasPage() {
   const [showPreview, setShowPreview] = useState(false);
   // Disable autocomplete by default for free tier to conserve tokens
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(false);
-  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<string[]>([]);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const [showAIChat, setShowAIChat] = useState(false);
-  const [aiContinueSuggestion, setAiContinueSuggestion] = useState('');
-  const [showAIContinue, setShowAIContinue] = useState(false);
   const [assignmentType, setAssignmentType] = useState<'Essay' | 'Research Paper' | 'Report' | 'Case Study Response' | 'Literature Review' | 'Annotated Bibliography' | 'Reflective Writing/Journal' | ''>('');
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [previewType, setPreviewType] = useState<string | null>(null);
@@ -384,92 +379,7 @@ export default function CanvasPage() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!autocompleteEnabled || autocompleteSuggestions.length === 0) return;
-
-    if (e.key === 'Tab' || e.key === 'Enter') {
-      e.preventDefault();
-      acceptSuggestion();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      setAutocompleteSuggestions([]);
-      setSelectedSuggestionIndex(0);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedSuggestionIndex((prev) =>
-        prev < autocompleteSuggestions.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : 0);
-    }
-  };
-
-  const acceptSuggestion = () => {
-    if (autocompleteSuggestions.length > 0) {
-      const suggestion = autocompleteSuggestions[selectedSuggestionIndex];
-      setContent((prev) => prev + suggestion);
-      setAutocompleteSuggestions([]);
-      setSelectedSuggestionIndex(0);
-    }
-  };
-
-  // Autocomplete suggestions on typing pause
-  useEffect(() => {
-    if (!autocompleteEnabled || !content || !submissionId) {
-      setAutocompleteSuggestions([]);
-      return;
-    }
-
-    // Check token limit
-    if (aiTokensUsed >= aiTokenLimit) {
-      setAutocompleteSuggestions([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          return;
-        }
-        const idToken = await currentUser.getIdToken();
-
-        const response = await fetch('/api/ai/autocomplete-suggestions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            text: content,
-            submissionId,
-          }),
-        });
-
-        if (!response.ok) {
-          setAutocompleteSuggestions([]);
-          return;
-        }
-
-        const data = await response.json();
-        if (data.success && data.suggestions && Array.isArray(data.suggestions)) {
-          setAutocompleteSuggestions(data.suggestions.slice(0, 6));
-          setSelectedSuggestionIndex(0);
-          if (data.tokensUsed !== undefined) {
-            setAiTokensUsed(data.tokensUsed);
-          }
-        } else {
-          setAutocompleteSuggestions([]);
-        }
-      } catch (error) {
-        console.error('Autocomplete error:', error);
-        setAutocompleteSuggestions([]);
-      }
-    }, 500); // 500ms pause before triggering
-
-    return () => clearTimeout(timer);
-  }, [content, autocompleteEnabled, submissionId, aiTokensUsed, aiTokenLimit]);
+  // Auto-refresh removed - suggestions are now triggered manually via the bottom-right panel only
 
   const generateCitation = async () => {
     if (!selectedText) return;
@@ -510,7 +420,6 @@ export default function CanvasPage() {
     }
 
     setIsProcessingAI(true);
-    setShowAIContinue(false);
 
     try {
       const currentUser = auth.currentUser;
@@ -539,11 +448,12 @@ export default function CanvasPage() {
       const data = await response.json();
 
       if (data.success && data.suggestion) {
-        setAiContinueSuggestion(data.suggestion);
-        setShowAIContinue(true);
+        // Directly insert the suggestion instead of showing popup
+        setContent(prev => prev + ' ' + data.suggestion);
         if (data.tokensUsed !== undefined) {
           setAiTokensUsed(data.tokensUsed);
         }
+        showSuccess('AI continuation added to your text!');
       } else {
         showError('Failed to generate continuation. Please try again.');
       }
@@ -553,17 +463,6 @@ export default function CanvasPage() {
     } finally {
       setIsProcessingAI(false);
     }
-  };
-
-  const acceptAIContinue = (text: string) => {
-    setContent(prev => prev + text);
-    setShowAIContinue(false);
-    setAiContinueSuggestion('');
-  };
-
-  const rejectAIContinue = () => {
-    setShowAIContinue(false);
-    setAiContinueSuggestion('');
   };
 
   const insertFromChat = (text: string) => {
@@ -1266,62 +1165,10 @@ export default function CanvasPage() {
                     />
                   </div>
 
-                  {/* AI Continue Suggestion */}
-                  {showAIContinue && aiContinueSuggestion && (
-                    <div className="fixed top-1/3 left-1/2 transform -translate-x-1/2 z-50">
-                      <AIAutocomplete
-                        suggestion={aiContinueSuggestion}
-                        onAccept={acceptAIContinue}
-                        onReject={rejectAIContinue}
-                        position={{ top: 0, left: 0 }}
-                      />
-                    </div>
-                  )}
+                  {/* AI Continue Suggestion - moved to bottom-right via RichTextEditor */}
                 </div>
 
-                {/* Autocomplete Suggestions */}
-                {autocompleteEnabled && autocompleteSuggestions.length > 0 && (
-                  <div
-                    className="absolute bottom-20 left-6 bg-white border border-gray-300 rounded-lg shadow-lg max-w-md z-50"
-                    role="listbox"
-                    aria-label="Autocomplete suggestions"
-                  >
-                    <div className="p-2 border-b border-gray-200 text-xs text-gray-500">
-                      {autocompleteSuggestions.length} suggestion{autocompleteSuggestions.length !== 1 ? 's' : ''} - Use ↑/↓ to navigate, Tab/Enter to accept, Esc to dismiss
-                    </div>
-                    {autocompleteSuggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className={`p-3 cursor-pointer text-sm ${
-                          index === selectedSuggestionIndex
-                            ? 'bg-blue-50 text-blue-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                        onClick={() => {
-                          setSelectedSuggestionIndex(index);
-                          acceptSuggestion();
-                        }}
-                        role="option"
-                        aria-selected={index === selectedSuggestionIndex}
-                      >
-                        {suggestion}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Screen reader announcements */}
-                <div
-                  id="autocomplete-status"
-                  className="sr-only"
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  {autocompleteEnabled && autocompleteSuggestions.length > 0 &&
-                    `${autocompleteSuggestions.length} autocomplete suggestion${autocompleteSuggestions.length !== 1 ? 's' : ''} available`
-                  }
-                </div>
+                {/* Left-side autocomplete suggestions removed - using bottom-right panel only */}
               </div>
             )}
           </div>
@@ -1360,14 +1207,14 @@ export default function CanvasPage() {
                     <label
                       htmlFor="autocomplete-toggle"
                       className="text-sm font-medium text-gray-700 cursor-pointer"
-                      title="Show inline suggestions while you type. Use Tab to accept."
+                      title="Enable AI writing suggestions panel"
                     >
-                      Autocomplete while typing
+                      AI Writing Suggestions
                     </label>
                     <div className="ml-2 group relative">
                       <QuestionMarkCircleIcon className="h-4 w-4 text-gray-400 cursor-help" />
                       <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-[9999]">
-                        Show inline suggestions while you type. Use Tab to accept.
+                        Click the button in bottom-right to get AI suggestions when you need them.
                       </div>
                     </div>
                   </div>
@@ -1379,7 +1226,7 @@ export default function CanvasPage() {
                     }`}
                     role="switch"
                     aria-checked={autocompleteEnabled}
-                    aria-label="Toggle autocomplete while typing"
+                    aria-label="Toggle AI writing suggestions"
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -1389,16 +1236,16 @@ export default function CanvasPage() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  When enabled, displays up to 6 inline autocomplete suggestions as you type, navigable with arrow keys and accepted with Tab or Enter.
+                  When enabled, a "Get Suggestion" button appears in the bottom-right corner. Click it whenever you want AI help continuing your writing.
                 </p>
                 {!autocompleteEnabled && (
                   <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
-                    💡 <strong>Tip:</strong> Autocomplete is disabled by default to conserve your tokens. Enable it when you need writing assistance.
+                    💡 <strong>Tip:</strong> Enable AI suggestions when you need writing assistance. Suggestions are generated only when you click the button.
                   </div>
                 )}
                 {autocompleteEnabled && (
-                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                    ⚠️ <strong>Note:</strong> Autocomplete uses tokens with each suggestion. Consider using it sparingly, especially on free tier (1,000 tokens per assignment).
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+                    ✓ <strong>Enabled:</strong> Look for the "Get Suggestion" button in the bottom-right corner of the editor. Click it anytime you want AI help.
                   </div>
                 )}
               </div>
