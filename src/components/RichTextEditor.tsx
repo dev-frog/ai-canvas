@@ -337,7 +337,13 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
         // Accept suggestion with Tab key
         if (event.key === 'Tab' && autocompleteSuggestion && autocompleteEnabled) {
           event.preventDefault();
-          editor?.commands.insertContent(autocompleteSuggestion);
+          const { state } = view;
+          const { from } = state.selection;
+          const textBefore = state.doc.textBetween(Math.max(0, from - 1), from);
+          const needsSpace = textBefore && textBefore !== ' ' && textBefore !== '\n';
+          const trimmedSuggestion = autocompleteSuggestion.trimStart();
+          const contentToInsert = needsSpace ? ' ' + trimmedSuggestion : trimmedSuggestion;
+          editor?.commands.insertContent(contentToInsert);
           setAutocompleteSuggestion('');
           return true;
         }
@@ -452,8 +458,16 @@ export default function RichTextEditor({ content, onChange, onKeyDown, placehold
               </div>
               <button
                 onClick={() => {
-                  editor?.commands.insertContent(autocompleteSuggestion);
-                  setAutocompleteSuggestion('');
+                  if (editor) {
+                    const { state } = editor.view;
+                    const { from } = state.selection;
+                    const textBefore = state.doc.textBetween(Math.max(0, from - 1), from);
+                    const needsSpace = textBefore && textBefore !== ' ' && textBefore !== '\n';
+                    const trimmedSuggestion = autocompleteSuggestion.trimStart();
+                    const contentToInsert = needsSpace ? ' ' + trimmedSuggestion : trimmedSuggestion;
+                    editor.commands.insertContent(contentToInsert);
+                    setAutocompleteSuggestion('');
+                  }
                 }}
                 className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
               >
